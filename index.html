@@ -504,97 +504,84 @@
       </section>
 
       <!-- ================= VIEW 3: INTEGRATED PDF & DOCUMENT VIEWER ================= -->
-      <section id="view-viewer" class="hidden flex-1 flex-col bg-slate-950 text-white relative h-screen max-h-screen overflow-hidden">
-        <!-- Viewer Top Bar (Glassmorphic & Sleek) -->
-        <div class="px-3.5 py-2.5 bg-slate-950/90 backdrop-blur-md flex items-center justify-between border-b border-slate-800/80 z-20 shrink-0">
-          <div class="flex items-center gap-2 min-w-0">
-            <button onclick="viewer.closeViewer()" class="w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-slate-750 flex items-center justify-center text-slate-300 hover:text-white active:scale-95 transition shrink-0" title="Back to Documents">
-              <i class="fa-solid fa-chevron-left text-xs"></i>
+      <section id="view-viewer" class="hidden flex-1 flex-col bg-slate-950 text-white relative min-h-screen pb-24">
+        <!-- Persistent Mobile Floating Exit Button (Always Accessible, Never Obscured) -->
+        <div class="sticky top-2 z-40 px-3 py-1 flex items-center justify-between pointer-events-none">
+          <button onclick="viewer.closeViewer()" class="pointer-events-auto px-3.5 py-2 rounded-2xl bg-black/85 hover:bg-black text-white text-xs font-bold backdrop-blur-xl border border-white/20 shadow-2xl flex items-center gap-2 active:scale-95 transition">
+            <i class="fa-solid fa-arrow-left text-brand-400"></i>
+            <span>Back</span>
+          </button>
+          
+          <div class="pointer-events-auto flex items-center gap-1.5 bg-black/85 backdrop-blur-xl border border-white/20 px-2.5 py-1.5 rounded-2xl shadow-2xl">
+            <button onclick="viewer.reEditDocument()" class="p-1.5 text-amber-400 hover:text-amber-300 text-xs active:scale-95" title="Re-Edit in Studio">
+              <i class="fa-solid fa-pen-to-square"></i>
             </button>
-            <div class="min-w-0">
-              <h3 id="viewerDocTitle" class="text-xs font-bold truncate text-slate-100 max-w-[120px] sm:max-w-[180px]">Document.pdf</h3>
-              <div class="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium">
-                <span id="viewerPageStatus">1 / 1</span>
-                <span>•</span>
-                <span id="viewerFileSizeBadge" class="text-slate-400 font-mono">0 KB</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Quick Action Icons Strip -->
-          <div class="flex items-center gap-1 shrink-0">
-            <!-- Document Inspector & Quality Score -->
-            <button onclick="viewer.openInspectorModal()" class="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25 border border-indigo-500/30 flex items-center justify-center text-xs active:scale-95 transition" title="Document Quality & Specs">
-              <i class="fa-solid fa-chart-pie text-[11px]"></i>
+            <button onclick="viewer.cycleColorMode()" class="p-1.5 text-indigo-400 hover:text-indigo-300 text-xs active:scale-95" title="Reading Tints">
+              <i class="fa-solid fa-palette"></i>
             </button>
-
-            <!-- Re-Edit in Document Studio -->
-            <button onclick="viewer.reEditDocument()" class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 flex items-center justify-center text-xs active:scale-95 transition" title="Edit in Studio">
-              <i class="fa-solid fa-sliders text-[11px]"></i>
-            </button>
-
-            <!-- Reading Palette Tints (Normal, Night, Sepia, Emerald) -->
-            <button onclick="viewer.cycleColorMode()" id="viewerThemeBtn" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center text-xs active:scale-95 transition" title="Change Reading Tint">
-              <i class="fa-solid fa-palette text-[11px]"></i>
-            </button>
-
-            <!-- OCR Extract Text -->
-            <button onclick="viewer.openOcrModal()" class="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-400 hover:bg-sky-500/25 border border-sky-500/30 flex items-center justify-center text-xs active:scale-95 transition" title="Extract Text (OCR)">
-              <i class="fa-solid fa-font text-[11px]"></i>
-            </button>
-
-            <!-- Download Button -->
-            <button onclick="viewer.downloadCurrentPdf()" class="w-8 h-8 rounded-xl bg-brand-600 hover:bg-brand-500 text-white flex items-center justify-center text-xs shadow-md shadow-brand-500/30 active:scale-95 transition" title="Download PDF">
-              <i class="fa-solid fa-download text-[11px]"></i>
+            <button onclick="viewer.downloadCurrentPdf()" class="px-2.5 py-1 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-[11px] font-bold flex items-center gap-1 active:scale-95 shadow-md">
+              <i class="fa-solid fa-download"></i> Save
             </button>
           </div>
         </div>
 
-        <!-- Document Canvas Viewport Container (Edge-to-Edge with Realistic Shadows) -->
-        <div id="pdfViewportContainer" class="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 flex flex-col items-center custom-scrollbar bg-slate-900/60 select-none"></div>
+        <!-- Viewer Info Sub-Header -->
+        <div class="px-4 py-1.5 flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800/80 mb-2">
+          <div class="flex items-center gap-2 min-w-0">
+            <i class="fa-solid fa-file-pdf text-rose-500"></i>
+            <span id="viewerDocTitle" class="font-bold text-slate-200 truncate max-w-[170px]">Document.pdf</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-[10px] font-mono">
+            <span id="viewerPageStatus">1 of 1</span>
+            <span>•</span>
+            <span id="viewerFileSizeBadge">0 KB</span>
+          </div>
+        </div>
+
+        <!-- Document Canvas Viewport Container (Smooth Native Scrollable, No Touch Locks) -->
+        <div id="pdfViewportContainer" class="flex-1 px-3 py-2 space-y-4 flex flex-col items-center select-none w-full"></div>
 
         <!-- Floating Quick Page Navigation Indicators -->
-        <div id="floatingPageControls" class="absolute bottom-16 right-4 z-20 flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md px-2 py-1.5 rounded-2xl border border-slate-800 shadow-xl">
-          <button onclick="viewer.prevPage()" class="w-7 h-7 rounded-xl bg-slate-800/80 text-slate-300 hover:text-white flex items-center justify-center text-xs active:scale-90 transition">
-            <i class="fa-solid fa-chevron-up text-[10px]"></i>
+        <div id="floatingPageControls" class="fixed bottom-20 right-4 z-40 flex items-center gap-1.5 bg-black/85 backdrop-blur-xl px-2.5 py-1.5 rounded-2xl border border-white/20 shadow-2xl">
+          <button onclick="viewer.prevPage()" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-200 hover:text-white flex items-center justify-center text-xs active:scale-90 transition">
+            <i class="fa-solid fa-chevron-up"></i>
           </button>
-          <span id="floatingPageNum" class="text-[10px] font-bold text-slate-300 px-1 font-mono">1 / 1</span>
-          <button onclick="viewer.nextPage()" class="w-7 h-7 rounded-xl bg-slate-800/80 text-slate-300 hover:text-white flex items-center justify-center text-xs active:scale-90 transition">
-            <i class="fa-solid fa-chevron-down text-[10px]"></i>
+          <span id="floatingPageNum" class="text-[11px] font-black text-brand-400 px-1 font-mono">1 / 1</span>
+          <button onclick="viewer.nextPage()" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-200 hover:text-white flex items-center justify-center text-xs active:scale-90 transition">
+            <i class="fa-solid fa-chevron-down"></i>
           </button>
         </div>
 
         <!-- Viewer Bottom Floating Dock (Zoom, TTS, Pages, Print, Share) -->
-        <div class="p-2.5 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-between text-xs px-4 z-20 shrink-0">
+        <div class="fixed bottom-0 inset-x-0 max-w-md mx-auto p-2.5 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 flex items-center justify-between text-xs px-4 z-40">
           <div class="flex items-center gap-1.5">
             <button onclick="viewer.zoomOut()" class="w-8 h-8 rounded-xl bg-slate-800/90 text-slate-300 hover:text-white flex items-center justify-center active:scale-90 transition" title="Zoom Out">
               <i class="fa-solid fa-minus text-[10px]"></i>
             </button>
-            <span id="zoomPercentLabel" class="text-[10px] font-bold text-slate-400 font-mono w-8 text-center">100%</span>
+            <span id="zoomPercentLabel" class="text-[10px] font-bold text-slate-300 font-mono w-9 text-center">100%</span>
             <button onclick="viewer.zoomIn()" class="w-8 h-8 rounded-xl bg-slate-800/90 text-slate-300 hover:text-white flex items-center justify-center active:scale-90 transition" title="Zoom In">
               <i class="fa-solid fa-plus text-[10px]"></i>
             </button>
             <button onclick="viewer.speakExtractedText()" class="w-8 h-8 rounded-xl bg-slate-800/90 text-amber-400 hover:text-amber-300 flex items-center justify-center active:scale-90 transition" title="Read Aloud (TTS)">
               <i class="fa-solid fa-volume-high text-[11px]"></i>
             </button>
-            <button onclick="viewer.togglePageNavDrawer()" class="px-2.5 py-1.5 rounded-xl bg-slate-800/90 text-slate-300 hover:text-white text-[10px] font-bold flex items-center gap-1 active:scale-95 transition" title="Page Thumbnails">
-              <i class="fa-solid fa-table-cells text-brand-400"></i>
-              <span>Pages</span>
+            <button onclick="viewer.openInspectorModal()" class="w-8 h-8 rounded-xl bg-slate-800/90 text-indigo-400 hover:text-indigo-300 flex items-center justify-center active:scale-90 transition" title="Quality Specs">
+              <i class="fa-solid fa-chart-pie text-[11px]"></i>
             </button>
           </div>
 
           <div class="flex items-center gap-1.5">
-            <button onclick="viewer.printDocument()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-[11px] flex items-center gap-1 active:scale-95 transition">
+            <button onclick="viewer.printDocument()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-[11px] flex items-center gap-1 active:scale-95 transition">
               <i class="fa-solid fa-print text-[10px]"></i> Print
             </button>
-            <button onclick="viewer.shareDocument()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-md shadow-brand-500/25 active:scale-95 transition">
+            <button onclick="viewer.shareDocument()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-md shadow-brand-500/25 active:scale-95 transition">
               <i class="fa-solid fa-share-nodes text-[10px]"></i> Share
             </button>
           </div>
         </div>
 
         <!-- Interactive Page Quick-Jump Drawer -->
-        <div id="pageNavDrawer" class="hidden absolute bottom-14 inset-x-0 bg-slate-950/95 border-t border-slate-800/90 p-3 z-30 backdrop-blur-xl transition-all">
+        <div id="pageNavDrawer" class="hidden fixed bottom-14 inset-x-0 max-w-md mx-auto bg-slate-950/98 border-t border-slate-800 p-3 z-50 backdrop-blur-2xl transition-all shadow-2xl">
           <div class="flex items-center justify-between mb-2 px-1 text-[11px]">
             <span class="font-bold text-slate-300 flex items-center gap-1.5">
               <i class="fa-solid fa-grip text-brand-400"></i> Jump to Page
@@ -4104,19 +4091,26 @@
         const header = document.querySelector('header');
         const nav = document.querySelector('nav');
         const fab = document.getElementById('fabContainer');
+        const main = document.querySelector('main');
 
         if (viewName === 'viewer') {
           if (header) header.classList.add('hidden');
           if (nav) nav.classList.add('hidden');
           if (fab) fab.style.display = 'none';
+          if (main) {
+            main.classList.remove('overflow-y-auto');
+            window.scrollTo({ top: 0, behavior: 'instant' });
+          }
         } else if (viewName === 'editor') {
           if (header) header.classList.add('hidden');
           if (nav) nav.classList.add('hidden');
           if (fab) fab.style.display = 'none';
+          if (main) main.classList.add('overflow-y-auto');
         } else {
           if (header) header.classList.remove('hidden');
           if (nav) nav.classList.remove('hidden');
           if (fab) fab.style.display = 'block';
+          if (main) main.classList.add('overflow-y-auto');
         }
       }
 
@@ -4380,9 +4374,11 @@
         this.showToast('Local storage vault cleared');
       }
 
-      showTab(tab) {
-        this.currentTab = tab;
-        if (tab === 'home') this.showView('home');
+      closeViewer() {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        const main = document.querySelector('main');
+        if (main) main.classList.add('overflow-y-auto');
+        this.showView('home');
       }
     }
 
