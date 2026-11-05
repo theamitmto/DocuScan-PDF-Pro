@@ -62,6 +62,12 @@
     .pdf-night-mode {
       filter: invert(0.92) hue-rotate(180deg) contrast(1.15);
     }
+    .pdf-sepia-mode {
+      filter: sepia(0.65) contrast(0.95) brightness(0.95);
+    }
+    .pdf-emerald-mode {
+      filter: invert(0.9) hue-rotate(90deg) contrast(1.2);
+    }
     .glassmorphism {
       background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(12px);
@@ -249,22 +255,22 @@
       <!-- ================= VIEW 2: PROFESSIONAL EDITOR & STUDIO ================= -->
       <section id="view-editor" class="hidden flex-1 flex-col p-4 space-y-4">
         <!-- Editor Header -->
-        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-          <button onclick="editor.backToHome()" class="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex items-center gap-1.5 active:scale-95">
+        <div class="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 pb-3">
+          <button onclick="editor.backToHome()" class="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex items-center gap-1.5 active:scale-95 transition">
             <i class="fa-solid fa-chevron-left text-[10px]"></i> Cancel
           </button>
           <div class="text-center">
-            <h2 class="text-xs font-black uppercase tracking-wider">Document Studio</h2>
-            <p id="editorPageIndicator" class="text-[10px] text-slate-400 font-medium">Page 1 of 1</p>
+            <h2 class="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">Document Studio</h2>
+            <p id="editorPageIndicator" class="text-[10px] text-brand-600 dark:text-brand-400 font-bold">Page 1 of 1</p>
           </div>
-          <button onclick="editor.saveAndCompilePdf()" class="px-4 py-2 bg-gradient-to-r from-brand-600 to-indigo-600 active:scale-95 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-brand-500/25 flex items-center gap-1.5 transition">
+          <button onclick="editor.saveAndCompilePdf()" class="px-4 py-2 bg-gradient-to-r from-brand-600 via-indigo-600 to-indigo-700 active:scale-95 text-white text-xs font-extrabold rounded-xl shadow-lg shadow-brand-500/25 flex items-center gap-1.5 transition">
             <i class="fa-solid fa-file-arrow-down"></i> Save PDF
           </button>
         </div>
 
         <!-- Interactive Canvas Viewport with Corner Crop Handles -->
         <div class="flex-1 min-h-[340px] bg-slate-900/5 dark:bg-slate-950 rounded-3xl flex items-center justify-center relative p-3 shadow-inner border border-slate-200 dark:border-slate-800 overflow-hidden select-none">
-          <canvas id="editorCanvas" class="max-h-[310px] max-w-full rounded shadow-2xl object-contain bg-white"></canvas>
+          <canvas id="editorCanvas" class="max-h-[310px] max-w-full rounded-2xl shadow-2xl object-contain bg-white"></canvas>
           
           <!-- Crop & Perspective Overlay Canvas -->
           <canvas id="cropCanvas" class="absolute inset-0 m-auto pointer-events-auto"></canvas>
@@ -273,42 +279,63 @@
           <canvas id="drawingCanvas" class="absolute inset-0 m-auto pointer-events-none"></canvas>
 
           <!-- Mode Guidance Banner -->
-          <div id="toolTipBanner" class="hidden absolute bottom-3 px-3.5 py-1.5 bg-black/80 text-white text-[11px] font-medium rounded-full backdrop-blur-md shadow-lg border border-white/10 flex items-center gap-1.5">
+          <div id="toolTipBanner" class="hidden absolute bottom-3 px-3.5 py-1.5 bg-black/85 text-white text-[11px] font-medium rounded-full backdrop-blur-md shadow-lg border border-white/10 flex items-center gap-1.5">
             <i class="fa-solid fa-circle-info text-brand-400"></i>
             <span id="toolTipText">Adjust corners to crop</span>
           </div>
         </div>
 
-        <!-- Page Carousel Strip (Batch/Multi-Page Reorder & Delete) -->
-        <div class="space-y-1.5">
-          <div class="flex items-center justify-between text-[11px] text-slate-500 px-1 font-semibold">
-            <span>Pages (<span id="carouselPageCount">1</span>)</span>
-            <div class="flex items-center gap-3">
-              <button onclick="modals.openPageReorderModal()" class="text-indigo-600 font-bold hover:underline flex items-center gap-1">
+        <!-- NEW: Premium Large Page Strip with Prominent "+" Scan Card -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-[11px] text-slate-500 px-1 font-bold">
+            <span class="flex items-center gap-1.5">
+              <i class="fa-solid fa-layer-group text-brand-500 text-xs"></i> 
+              Pages (<span id="carouselPageCount" class="text-brand-600 dark:text-brand-400">1</span>)
+            </span>
+            <div class="flex items-center gap-2">
+              <button onclick="modals.openPageReorderModal()" class="text-slate-600 dark:text-slate-300 hover:text-brand-600 font-bold flex items-center gap-1 active:scale-95 transition">
                 <i class="fa-solid fa-grip text-[10px]"></i> Reorder
               </button>
-              <label class="cursor-pointer text-brand-600 font-bold hover:underline flex items-center gap-1">
-                <i class="fa-solid fa-camera text-[10px]"></i> + Add Photo
-                <input type="file" id="addPageNativeCameraInput" accept="image/*" capture="environment" class="hidden">
+            </div>
+          </div>
+
+          <!-- Horizontal Page Strip Container -->
+          <div class="flex items-center gap-2.5 overflow-x-auto py-1.5 px-0.5 custom-scrollbar">
+            <!-- Dynamic Rendered Pages will appear here -->
+            <div id="pagesThumbStrip" class="flex items-center gap-2.5 shrink-0"></div>
+
+            <!-- PROMINENT LARGE "+" CARD: Matches thumbnail height -->
+            <div class="flex items-center gap-1.5 shrink-0">
+              <!-- Large Camera '+' Add Button -->
+              <label class="w-16 h-22 rounded-2xl border-2 border-dashed border-brand-500/80 bg-brand-50/60 dark:bg-brand-950/40 hover:bg-brand-100/70 text-brand-600 dark:text-brand-400 flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 transition shadow-sm group shrink-0" title="Scan Next Page with Camera">
+                <div class="w-7 h-7 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-md shadow-brand-500/30 group-hover:scale-110 transition">
+                  <i class="fa-solid fa-plus text-xs"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-wider text-center leading-none mt-0.5">Camera</span>
+                <input type="file" id="studioBigPlusCameraInput" accept="image/*" capture="environment" class="hidden">
               </label>
-              <label class="cursor-pointer text-slate-600 dark:text-slate-300 font-medium flex items-center gap-1">
-                <i class="fa-solid fa-images text-[10px]"></i> + Gallery
-                <input type="file" id="addPageInput" accept="image/*" class="hidden">
+
+              <!-- Gallery '+' Add Button -->
+              <label class="w-16 h-22 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 text-slate-600 dark:text-slate-400 flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 transition shrink-0" title="Add Page from Photos">
+                <div class="w-7 h-7 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center text-xs">
+                  <i class="fa-solid fa-images"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-wider text-center leading-none mt-0.5">Photos</span>
+                <input type="file" id="studioBigPlusGalleryInput" accept="image/*" multiple class="hidden">
               </label>
             </div>
           </div>
-          <div id="pagesThumbStrip" class="flex gap-2 overflow-x-auto py-1 custom-scrollbar"></div>
         </div>
 
-        <!-- Filter & Color Modes Strip -->
+        <!-- Filter & Color Enhancement Presets Strip -->
         <div class="bg-slate-100/80 dark:bg-slate-800/60 p-2.5 rounded-2xl space-y-2 border border-slate-200/80 dark:border-slate-800">
           <div class="flex items-center justify-between text-[11px] font-bold px-1 text-slate-600 dark:text-slate-400">
             <span><i class="fa-solid fa-sliders mr-1 text-brand-500"></i>Enhancement Presets</span>
             <div class="flex items-center gap-3">
-              <button onclick="editor.toggleCropMode()" id="cropToggleBtn" class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1 hover:text-brand-600">
+              <button onclick="editor.toggleCropMode()" id="cropToggleBtn" class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1 hover:text-brand-600 transition">
                 <i class="fa-solid fa-crop-simple text-[10px]"></i> <span id="cropBtnLabel">Crop & Deskew</span>
               </button>
-              <button onclick="editor.rotateCurrentPage()" class="text-brand-600 dark:text-brand-400 font-bold flex items-center gap-1">
+              <button onclick="editor.rotateCurrentPage()" class="text-brand-600 dark:text-brand-400 font-bold flex items-center gap-1 active:scale-95 transition">
                 <i class="fa-solid fa-rotate-right text-xs"></i> 90°
               </button>
             </div>
@@ -316,15 +343,15 @@
 
           <!-- Color Filters (Default is 100% Original HD Lossless) -->
           <div class="grid grid-cols-5 gap-1 text-[11px]">
-            <button onclick="editor.applyFilter('original')" id="btnFilter-original" class="filter-btn py-1.5 rounded-xl border border-brand-500 bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 font-bold text-center">Original</button>
-            <button onclick="editor.applyFilter('magicPro')" id="btnFilter-magicPro" class="filter-btn py-1.5 rounded-xl border border-transparent bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-center font-medium">Magic Pro</button>
-            <button onclick="editor.applyFilter('sharp')" id="btnFilter-sharp" class="filter-btn py-1.5 rounded-xl border border-transparent bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-center font-medium">Sharp Text</button>
-            <button onclick="editor.applyFilter('bw')" id="btnFilter-bw" class="filter-btn py-1.5 rounded-xl border border-transparent bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-center font-medium">Clean B&W</button>
-            <button onclick="editor.applyFilter('gray')" id="btnFilter-gray" class="filter-btn py-1.5 rounded-xl border border-transparent bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-center font-medium">Grayscale</button>
+            <button onclick="editor.applyFilter('original')" id="btnFilter-original" class="filter-btn py-1.5 rounded-xl border border-brand-500 bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 font-bold text-center transition">Original</button>
+            <button onclick="editor.applyFilter('magicPro')" id="btnFilter-magicPro" class="filter-btn py-1.5 rounded-xl border border-transparent bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-center font-medium transition">Magic Pro</button>
+            <button onclick="editor.applyFilter('sharp')" id="btnFilter-sharp" class="filter-btn py-1.5 rounded-xl border border-transparent bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-center font-medium transition">Sharp Text</button>
+            <button onclick="editor.applyFilter('bw')" id="btnFilter-bw" class="filter-btn py-1.5 rounded-xl border border-transparent bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-center font-medium transition">Clean B&W</button>
+            <button onclick="editor.applyFilter('gray')" id="btnFilter-gray" class="filter-btn py-1.5 rounded-xl border border-transparent bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-center font-medium transition">Grayscale</button>
           </div>
         </div>
 
-        <!-- Pro Tools Interactive Toolbar -->
+        <!-- Pro Tools Primary Toolbar -->
         <div class="grid grid-cols-6 gap-1.5 text-center">
           <!-- Tool 1: Form Fill / Type -->
           <button onclick="modals.openFormFillModal()" class="p-2 bg-slate-50 dark:bg-slate-800/80 rounded-2xl flex flex-col items-center justify-center gap-1 border border-slate-200 dark:border-slate-700 active:scale-95 transition">
@@ -363,165 +390,220 @@
           </button>
         </div>
 
-        <!-- NEW: Extra Pro Studio Quick Actions Bar (Color Balance, QR Stamp, Book Split, Quick Invert) -->
-        <div class="grid grid-cols-4 gap-2 text-center text-xs">
-          <button onclick="modals.openColorAdjustModal()" class="p-2 bg-indigo-50/60 dark:bg-indigo-950/30 rounded-xl border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-center gap-1 active:scale-95">
+        <!-- Extra Pro Studio Quick Actions Bar (Color Balance, QR Stamp, Book Split, Quick Invert, Clone) -->
+        <div class="grid grid-cols-5 gap-1.5 text-center text-xs">
+          <button onclick="modals.openColorAdjustModal()" class="p-2 bg-indigo-50/60 dark:bg-indigo-950/30 rounded-xl border border-indigo-200 dark:border-indigo-800/60 flex flex-col items-center justify-center gap-1 active:scale-95 transition">
             <i class="fa-solid fa-sliders text-indigo-500 text-[10px]"></i>
-            <span class="font-bold text-[9px]">Tuning</span>
+            <span class="font-bold text-[8px]">Tuning</span>
           </button>
-          <button onclick="modals.openQrStampModal()" class="p-2 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-center gap-1 active:scale-95">
+          <button onclick="modals.openQrStampModal()" class="p-2 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800/60 flex flex-col items-center justify-center gap-1 active:scale-95 transition">
             <i class="fa-solid fa-qrcode text-emerald-500 text-[10px]"></i>
-            <span class="font-bold text-[9px]">Stamp QR</span>
+            <span class="font-bold text-[8px]">Stamp QR</span>
           </button>
-          <button onclick="editor.splitBookSpread()" class="p-2 bg-amber-50/60 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-800/60 flex items-center justify-center gap-1 active:scale-95">
+          <button onclick="editor.splitBookSpread()" class="p-2 bg-amber-50/60 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-800/60 flex flex-col items-center justify-center gap-1 active:scale-95 transition">
             <i class="fa-solid fa-book-open text-amber-500 text-[10px]"></i>
-            <span class="font-bold text-[9px]">Split Book</span>
+            <span class="font-bold text-[8px]">Split Book</span>
           </button>
-          <button onclick="editor.invertColors()" class="p-2 bg-purple-50/60 dark:bg-purple-950/30 rounded-xl border border-purple-200 dark:border-purple-800/60 flex items-center justify-center gap-1 active:scale-95">
+          <button onclick="editor.cloneCurrentPage()" class="p-2 bg-sky-50/60 dark:bg-sky-950/30 rounded-xl border border-sky-200 dark:border-sky-800/60 flex flex-col items-center justify-center gap-1 active:scale-95 transition">
+            <i class="fa-solid fa-clone text-sky-500 text-[10px]"></i>
+            <span class="font-bold text-[8px]">Clone Page</span>
+          </button>
+          <button onclick="editor.invertColors()" class="p-2 bg-purple-50/60 dark:bg-purple-950/30 rounded-xl border border-purple-200 dark:border-purple-800/60 flex flex-col items-center justify-center gap-1 active:scale-95 transition">
             <i class="fa-solid fa-circle-half-stroke text-purple-500 text-[10px]"></i>
-            <span class="font-bold text-[9px]">Invert Ink</span>
+            <span class="font-bold text-[8px]">Invert</span>
           </button>
         </div>
 
-        <!-- NEW: Extra Pro Studio Quick Actions Bar (Color Balance, QR Stamp, Book Split) -->
-        <div class="grid grid-cols-3 gap-2 text-center text-xs">
-          <button onclick="modals.openColorAdjustModal()" class="p-2 bg-indigo-50/60 dark:bg-indigo-950/30 rounded-xl border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-center gap-1.5 active:scale-95">
-            <i class="fa-solid fa-sliders text-indigo-500"></i>
-            <span class="font-bold text-[10px]">Tuning / Brightness</span>
-          </button>
-          <button onclick="modals.openQrStampModal()" class="p-2 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-center gap-1.5 active:scale-95">
-            <i class="fa-solid fa-qrcode text-emerald-500"></i>
-            <span class="font-bold text-[10px]">Stamp QR Code</span>
-          </button>
-          <button onclick="editor.splitBookSpread()" class="p-2 bg-amber-50/60 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-800/60 flex items-center justify-center gap-1.5 active:scale-95">
-            <i class="fa-solid fa-book-open text-amber-500"></i>
-            <span class="font-bold text-[10px]">Split Book 2-Page</span>
-          </button>
-        </div>
-
-        <!-- Document Details Form -->
-        <div class="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5 text-xs">
+        <!-- NEW: Collapsible & Cleaner Document Details Form -->
+        <div class="bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 text-xs">
           <div>
             <label class="block text-[11px] font-bold text-slate-500 mb-1">Document Title</label>
-            <input type="text" id="docMetaTitle" placeholder="e.g., Degree Certificate" class="w-full px-3 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 font-semibold">
+            <input type="text" id="docMetaTitle" placeholder="e.g., Degree Certificate" class="w-full px-3 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 font-semibold text-slate-800 dark:text-slate-100">
           </div>
 
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 mb-1">Category Folder</label>
-              <select id="docMetaFolder" class="w-full px-2.5 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs font-medium">
-                <option value="Government IDs">Government IDs</option>
-                <option value="Books & Notes">Books & Notes</option>
-                <option value="Bills & Invoices">Bills & Invoices</option>
-                <option value="Office & Business">Office & Business</option>
-                <option value="Uncategorized">Others</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 mb-1">Page Format</label>
-              <select id="docMetaPageSize" class="w-full px-2.5 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs font-medium">
-                <option value="a4">A4 (Standard)</option>
-                <option value="letter">US Letter</option>
-                <option value="legal">Legal Sheet</option>
-              </select>
-            </div>
-          </div>
+          <!-- Quick Toggle for Advanced PDF Specs -->
+          <details class="group">
+            <summary class="cursor-pointer font-bold text-[11px] text-brand-600 dark:text-brand-400 flex items-center justify-between py-1 select-none">
+              <span class="flex items-center gap-1.5">
+                <i class="fa-solid fa-gear text-xs"></i> Advanced PDF Specs & Layout
+              </span>
+              <i class="fa-solid fa-chevron-down text-[10px] group-open:rotate-180 transition-transform"></i>
+            </summary>
+            
+            <div class="pt-3 space-y-2.5">
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">Category Folder</label>
+                  <select id="docMetaFolder" class="w-full px-2.5 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs font-medium">
+                    <option value="Government IDs">Government IDs</option>
+                    <option value="Books & Notes">Books & Notes</option>
+                    <option value="Bills & Invoices">Bills & Invoices</option>
+                    <option value="Office & Business">Office & Business</option>
+                    <option value="Uncategorized">Others</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">Page Format & Fit</label>
+                  <select id="docMetaPageSize" class="w-full px-2.5 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs font-semibold text-brand-600 dark:text-brand-400">
+                    <option value="original-fit" selected>Fit Original Shape (No Stretch)</option>
+                    <option value="match-image">Exact Image Size (1:1 Canvas)</option>
+                    <option value="a4">A4 Sheet (Proportional)</option>
+                    <option value="a4-landscape">A4 Landscape</option>
+                    <option value="letter">US Letter</option>
+                    <option value="fill">Fill Entire Page (Stretch)</option>
+                  </select>
+                </div>
+              </div>
 
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 mb-1">Print Margins / Bleed</label>
-              <select id="docMetaMargins" class="w-full px-2.5 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs font-medium">
-                <option value="0" selected>Full Bleed (0 mm)</option>
-                <option value="15">Compact (5 mm)</option>
-                <option value="28">Standard Print (10 mm)</option>
-                <option value="42">Wide Binder (15 mm)</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 mb-1">DPI / Quality</label>
-              <select id="docMetaQuality" class="w-full px-2.5 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs font-medium">
-                <option value="0.95">Ultra HD (Lossless 300 DPI)</option>
-                <option value="0.80" selected>Balanced (~150 DPI)</option>
-                <option value="0.55">Compact Small File</option>
-              </select>
-            </div>
-          </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">Print Margins / Bleed</label>
+                  <select id="docMetaMargins" class="w-full px-2.5 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs font-medium">
+                    <option value="0" selected>Full Bleed (0 mm)</option>
+                    <option value="15">Compact (5 mm)</option>
+                    <option value="28">Standard Print (10 mm)</option>
+                    <option value="42">Wide Binder (15 mm)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">DPI / Quality</label>
+                  <select id="docMetaQuality" class="w-full px-2.5 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs font-medium">
+                    <option value="0.95">Ultra HD (Lossless 300 DPI)</option>
+                    <option value="0.80" selected>Balanced (~150 DPI)</option>
+                    <option value="0.55">Compact Small File</option>
+                  </select>
+                </div>
+              </div>
 
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 mb-1">Page Numbering</label>
-              <select id="docMetaPageNumbers" class="w-full px-2.5 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs font-medium">
-                <option value="none">None</option>
-                <option value="bottom-center" selected>Page X of Y (Bottom)</option>
-                <option value="bottom-right">Page X (Bottom Right)</option>
-                <option value="roman">Roman (I, II, III...)</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 mb-1">Privacy Metadata</label>
-              <select id="docMetaStripExif" class="w-full px-2.5 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs font-medium">
-                <option value="true" selected>Strip EXIF & Device Info</option>
-                <option value="false">Keep Original Metadata</option>
-              </select>
-            </div>
-          </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">Page Numbering</label>
+                  <select id="docMetaPageNumbers" class="w-full px-2.5 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs font-medium">
+                    <option value="none">None</option>
+                    <option value="bottom-center" selected>Page X of Y (Bottom)</option>
+                    <option value="bottom-right">Page X (Bottom Right)</option>
+                    <option value="roman">Roman (I, II, III...)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">Privacy Metadata</label>
+                  <select id="docMetaStripExif" class="w-full px-2.5 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs font-medium">
+                    <option value="true" selected>Strip EXIF & Device Info</option>
+                    <option value="false">Keep Original Metadata</option>
+                  </select>
+                </div>
+              </div>
 
-          <div>
-            <label class="block text-[11px] font-bold text-slate-500 mb-1">Tags</label>
-            <input type="text" id="docMetaTags" placeholder="#tax, #college" class="w-full px-3 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs">
-          </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-400 mb-1">Tags</label>
+                <input type="text" id="docMetaTags" placeholder="#tax, #college" class="w-full px-3 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs">
+              </div>
+            </div>
+          </details>
         </div>
       </section>
 
       <!-- ================= VIEW 3: INTEGRATED PDF & DOCUMENT VIEWER ================= -->
-      <section id="view-viewer" class="hidden flex-1 flex-col bg-slate-900 text-white relative">
-        <!-- Viewer Top Bar -->
-        <div class="px-4 py-3 bg-slate-950/90 backdrop-blur-md flex items-center justify-between border-b border-slate-800 z-10">
-          <button onclick="viewer.closeViewer()" class="text-xs font-bold flex items-center gap-1.5 text-slate-300 hover:text-white active:scale-95">
-            <i class="fa-solid fa-chevron-left"></i> Back
-          </button>
-          <div class="text-center truncate max-w-[180px]">
-            <h3 id="viewerDocTitle" class="text-xs font-bold truncate">Document.pdf</h3>
-            <span id="viewerPageStatus" class="text-[10px] text-slate-400 font-medium">Page 1 / 1</span>
+      <section id="view-viewer" class="hidden flex-1 flex-col bg-slate-950 text-white relative h-screen max-h-screen overflow-hidden">
+        <!-- Viewer Top Bar (Glassmorphic & Sleek) -->
+        <div class="px-3.5 py-2.5 bg-slate-950/90 backdrop-blur-md flex items-center justify-between border-b border-slate-800/80 z-20 shrink-0">
+          <div class="flex items-center gap-2 min-w-0">
+            <button onclick="viewer.closeViewer()" class="w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-slate-750 flex items-center justify-center text-slate-300 hover:text-white active:scale-95 transition shrink-0" title="Back to Documents">
+              <i class="fa-solid fa-chevron-left text-xs"></i>
+            </button>
+            <div class="min-w-0">
+              <h3 id="viewerDocTitle" class="text-xs font-bold truncate text-slate-100 max-w-[120px] sm:max-w-[180px]">Document.pdf</h3>
+              <div class="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium">
+                <span id="viewerPageStatus">1 / 1</span>
+                <span>•</span>
+                <span id="viewerFileSizeBadge" class="text-slate-400 font-mono">0 KB</span>
+              </div>
+            </div>
           </div>
-          <div class="flex items-center gap-1.5">
-            <button onclick="viewer.openOcrModal()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs text-sky-400 active:scale-95" title="Extract Text (OCR)">
-              <i class="fa-solid fa-font"></i>
+
+          <!-- Quick Action Icons Strip -->
+          <div class="flex items-center gap-1 shrink-0">
+            <!-- Document Inspector & Quality Score -->
+            <button onclick="viewer.openInspectorModal()" class="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25 border border-indigo-500/30 flex items-center justify-center text-xs active:scale-95 transition" title="Document Quality & Specs">
+              <i class="fa-solid fa-chart-pie text-[11px]"></i>
             </button>
-            <button onclick="viewer.toggleNightMode()" id="viewerNightBtn" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs text-amber-400 active:scale-95" title="Dark Reading">
-              <i class="fa-solid fa-circle-half-stroke"></i>
+
+            <!-- Re-Edit in Document Studio -->
+            <button onclick="viewer.reEditDocument()" class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 flex items-center justify-center text-xs active:scale-95 transition" title="Edit in Studio">
+              <i class="fa-solid fa-sliders text-[11px]"></i>
             </button>
-            <button onclick="viewer.downloadCurrentPdf()" class="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-xs text-white active:scale-95" title="Download">
-              <i class="fa-solid fa-download"></i>
+
+            <!-- Reading Palette Tints (Normal, Night, Sepia, Emerald) -->
+            <button onclick="viewer.cycleColorMode()" id="viewerThemeBtn" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center text-xs active:scale-95 transition" title="Change Reading Tint">
+              <i class="fa-solid fa-palette text-[11px]"></i>
+            </button>
+
+            <!-- OCR Extract Text -->
+            <button onclick="viewer.openOcrModal()" class="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-400 hover:bg-sky-500/25 border border-sky-500/30 flex items-center justify-center text-xs active:scale-95 transition" title="Extract Text (OCR)">
+              <i class="fa-solid fa-font text-[11px]"></i>
+            </button>
+
+            <!-- Download Button -->
+            <button onclick="viewer.downloadCurrentPdf()" class="w-8 h-8 rounded-xl bg-brand-600 hover:bg-brand-500 text-white flex items-center justify-center text-xs shadow-md shadow-brand-500/30 active:scale-95 transition" title="Download PDF">
+              <i class="fa-solid fa-download text-[11px]"></i>
             </button>
           </div>
         </div>
 
-        <!-- Document Canvas Viewport Container -->
-        <div id="pdfViewportContainer" class="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col items-center gap-4 custom-scrollbar bg-slate-900"></div>
+        <!-- Document Canvas Viewport Container (Edge-to-Edge with Realistic Shadows) -->
+        <div id="pdfViewportContainer" class="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 flex flex-col items-center custom-scrollbar bg-slate-900/60 select-none"></div>
 
-        <!-- Viewer Bottom Floating Tools -->
-        <div class="p-3 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-around text-xs">
-          <button onclick="viewer.zoomOut()" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white active:scale-95">
-            <i class="fa-solid fa-magnifying-glass-minus text-sm"></i>
-            <span class="text-[9px]">Zoom -</span>
+        <!-- Floating Quick Page Navigation Indicators -->
+        <div id="floatingPageControls" class="absolute bottom-16 right-4 z-20 flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md px-2 py-1.5 rounded-2xl border border-slate-800 shadow-xl">
+          <button onclick="viewer.prevPage()" class="w-7 h-7 rounded-xl bg-slate-800/80 text-slate-300 hover:text-white flex items-center justify-center text-xs active:scale-90 transition">
+            <i class="fa-solid fa-chevron-up text-[10px]"></i>
           </button>
-          <button onclick="viewer.zoomIn()" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white active:scale-95">
-            <i class="fa-solid fa-magnifying-glass-plus text-sm"></i>
-            <span class="text-[9px]">Zoom +</span>
+          <span id="floatingPageNum" class="text-[10px] font-bold text-slate-300 px-1 font-mono">1 / 1</span>
+          <button onclick="viewer.nextPage()" class="w-7 h-7 rounded-xl bg-slate-800/80 text-slate-300 hover:text-white flex items-center justify-center text-xs active:scale-90 transition">
+            <i class="fa-solid fa-chevron-down text-[10px]"></i>
           </button>
-          <button onclick="viewer.speakExtractedText()" id="ttsBtn" class="flex flex-col items-center gap-1 text-brand-400 hover:text-brand-300 active:scale-95">
-            <i class="fa-solid fa-volume-high text-sm"></i>
-            <span class="text-[9px]">Read Audio</span>
-          </button>
-          <button onclick="viewer.shareDocument()" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white active:scale-95">
-            <i class="fa-solid fa-share-nodes text-sm"></i>
-            <span class="text-[9px]">Share</span>
-          </button>
-          <button onclick="viewer.printDocument()" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white active:scale-95">
-            <i class="fa-solid fa-print text-sm"></i>
-            <span class="text-[9px]">Print</span>
-          </button>
+        </div>
+
+        <!-- Viewer Bottom Floating Dock (Zoom, TTS, Pages, Print, Share) -->
+        <div class="p-2.5 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 flex items-center justify-between text-xs px-4 z-20 shrink-0">
+          <div class="flex items-center gap-1.5">
+            <button onclick="viewer.zoomOut()" class="w-8 h-8 rounded-xl bg-slate-800/90 text-slate-300 hover:text-white flex items-center justify-center active:scale-90 transition" title="Zoom Out">
+              <i class="fa-solid fa-minus text-[10px]"></i>
+            </button>
+            <span id="zoomPercentLabel" class="text-[10px] font-bold text-slate-400 font-mono w-8 text-center">100%</span>
+            <button onclick="viewer.zoomIn()" class="w-8 h-8 rounded-xl bg-slate-800/90 text-slate-300 hover:text-white flex items-center justify-center active:scale-90 transition" title="Zoom In">
+              <i class="fa-solid fa-plus text-[10px]"></i>
+            </button>
+            <button onclick="viewer.speakExtractedText()" class="w-8 h-8 rounded-xl bg-slate-800/90 text-amber-400 hover:text-amber-300 flex items-center justify-center active:scale-90 transition" title="Read Aloud (TTS)">
+              <i class="fa-solid fa-volume-high text-[11px]"></i>
+            </button>
+            <button onclick="viewer.togglePageNavDrawer()" class="px-2.5 py-1.5 rounded-xl bg-slate-800/90 text-slate-300 hover:text-white text-[10px] font-bold flex items-center gap-1 active:scale-95 transition" title="Page Thumbnails">
+              <i class="fa-solid fa-table-cells text-brand-400"></i>
+              <span>Pages</span>
+            </button>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button onclick="viewer.printDocument()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-[11px] flex items-center gap-1 active:scale-95 transition">
+              <i class="fa-solid fa-print text-[10px]"></i> Print
+            </button>
+            <button onclick="viewer.shareDocument()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-md shadow-brand-500/25 active:scale-95 transition">
+              <i class="fa-solid fa-share-nodes text-[10px]"></i> Share
+            </button>
+          </div>
+        </div>
+
+        <!-- Interactive Page Quick-Jump Drawer -->
+        <div id="pageNavDrawer" class="hidden absolute bottom-14 inset-x-0 bg-slate-950/95 border-t border-slate-800/90 p-3 z-30 backdrop-blur-xl transition-all">
+          <div class="flex items-center justify-between mb-2 px-1 text-[11px]">
+            <span class="font-bold text-slate-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-grip text-brand-400"></i> Jump to Page
+            </span>
+            <button onclick="viewer.togglePageNavDrawer()" class="text-slate-400 hover:text-white p-1">
+              <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+          </div>
+          <div id="drawerThumbList" class="flex gap-2.5 overflow-x-auto pb-1.5 custom-scrollbar"></div>
         </div>
       </section>
 
@@ -1085,26 +1167,137 @@
   </div>
 
   <!-- Modal 14: Vault Backup & Restore JSON -->
-  <div id="backupModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl p-5 space-y-4 border border-slate-200 dark:border-slate-800 text-xs">
+  <!-- NEW MODAL 21: PDF Document Inspector & Analysis Studio -->
+  <div id="inspectorModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl p-5 space-y-4 border border-slate-200 dark:border-slate-800 text-xs flex flex-col max-h-[85vh] overflow-y-auto custom-scrollbar">
       <div class="flex items-center justify-between">
-        <h3 class="text-sm font-bold flex items-center gap-1.5">
-          <i class="fa-solid fa-box-archive text-blue-500"></i> Vault Backup & Migration
-        </h3>
-        <button onclick="document.getElementById('backupModal').classList.add('hidden')" class="text-slate-400">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-sm font-bold">
+            <i class="fa-solid fa-chart-simple"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Document Scan Analyzer</h3>
+            <p class="text-[10px] text-slate-400">100% On-Device Quality & Specs Report</p>
+          </div>
+        </div>
+        <button onclick="document.getElementById('inspectorModal').classList.add('hidden')" class="text-slate-400">
           <i class="fa-solid fa-xmark text-base"></i>
         </button>
       </div>
 
-      <p class="text-[11px] text-slate-500">Export your scanned documents into a backup file, or restore files onto another phone with zero server dependency.</p>
+      <!-- Health Score Gauge -->
+      <div class="p-3.5 bg-gradient-to-br from-indigo-500/10 via-brand-500/5 to-transparent rounded-2xl border border-indigo-200/60 dark:border-indigo-900/40 flex items-center justify-between">
+        <div class="space-y-0.5">
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Overall Scan Quality</span>
+          <div class="flex items-center gap-2">
+            <span id="inspectScoreNum" class="text-2xl font-black text-indigo-600 dark:text-indigo-400">92%</span>
+            <span id="inspectScoreBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">Excellent Sharpness</span>
+          </div>
+          <p id="inspectScoreSummary" class="text-[10px] text-slate-500 dark:text-slate-400">High clarity, suitable for official print & verification</p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-lg shadow-md shadow-indigo-500/30">
+          <i class="fa-solid fa-certificate"></i>
+        </div>
+      </div>
 
-      <button onclick="proTools.exportVaultBackup()" class="w-full py-2.5 bg-blue-600 text-white rounded-xl font-bold shadow-md flex items-center justify-center gap-1.5 active:scale-95">
-        <i class="fa-solid fa-download"></i> Export Vault Backup (.json)
-      </button>
+      <!-- Detailed Diagnostic Metrics Grid -->
+      <div class="grid grid-cols-2 gap-2">
+        <div class="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/70 dark:border-slate-800 space-y-1">
+          <div class="flex items-center justify-between text-slate-400 text-[10px]">
+            <span>Contrast & Ink Depth</span>
+            <i class="fa-solid fa-circle-half-stroke text-brand-500"></i>
+          </div>
+          <div class="flex items-baseline justify-between">
+            <span id="metricContrastVal" class="text-xs font-bold text-slate-800 dark:text-slate-100">Optimal</span>
+            <span id="metricContrastScore" class="text-[10px] text-emerald-500 font-semibold">94%</span>
+          </div>
+          <div class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div id="barContrast" class="h-full bg-brand-500 rounded-full" style="width: 94%"></div>
+          </div>
+        </div>
 
-      <div class="border-t border-slate-200 dark:border-slate-800 pt-3">
-        <label class="block font-bold text-slate-500 mb-1">Restore from Backup File</label>
-        <input type="file" id="restoreVaultInput" accept=".json" class="w-full text-xs">
+        <div class="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/70 dark:border-slate-800 space-y-1">
+          <div class="flex items-center justify-between text-slate-400 text-[10px]">
+            <span>Exposure & Paper Brightness</span>
+            <i class="fa-solid fa-sun text-amber-500"></i>
+          </div>
+          <div class="flex items-baseline justify-between">
+            <span id="metricBrightVal" class="text-xs font-bold text-slate-800 dark:text-slate-100">Clean White</span>
+            <span id="metricBrightScore" class="text-[10px] text-emerald-500 font-semibold">88%</span>
+          </div>
+          <div class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div id="barBright" class="h-full bg-amber-500 rounded-full" style="width: 88%"></div>
+          </div>
+        </div>
+
+        <div class="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/70 dark:border-slate-800 space-y-1">
+          <div class="flex items-center justify-between text-slate-400 text-[10px]">
+            <span>Resolution & Density</span>
+            <i class="fa-solid fa-expand text-blue-500"></i>
+          </div>
+          <div class="flex items-baseline justify-between">
+            <span id="metricResVal" class="text-xs font-bold text-slate-800 dark:text-slate-100">~300 DPI</span>
+            <span class="text-[10px] text-blue-500 font-semibold">Print Ready</span>
+          </div>
+          <div class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div class="h-full bg-blue-500 rounded-full" style="width: 92%"></div>
+          </div>
+        </div>
+
+        <div class="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/70 dark:border-slate-800 space-y-1">
+          <div class="flex items-center justify-between text-slate-400 text-[10px]">
+            <span>Color Profile</span>
+            <i class="fa-solid fa-palette text-purple-500"></i>
+          </div>
+          <div class="flex items-baseline justify-between">
+            <span id="metricColorType" class="text-xs font-bold text-slate-800 dark:text-slate-100">Full RGB</span>
+            <span id="metricColorRatio" class="text-[10px] text-purple-500 font-semibold">Vibrant</span>
+          </div>
+          <div class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div class="h-full bg-purple-500 rounded-full" style="width: 85%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Geometry & Technical Specifications Table -->
+      <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Geometry & Page Specifications</span>
+        <div class="grid grid-cols-2 gap-y-1.5 text-[11px]">
+          <div class="flex justify-between pr-2 border-r border-slate-200 dark:border-slate-700">
+            <span class="text-slate-500">Aspect Ratio:</span>
+            <span id="specAspectRatio" class="font-bold text-slate-700 dark:text-slate-200">1:1 Square</span>
+          </div>
+          <div class="flex justify-between pl-2">
+            <span class="text-slate-500">Dimensions:</span>
+            <span id="specDimensions" class="font-bold text-slate-700 dark:text-slate-200">1080 x 1080 px</span>
+          </div>
+          <div class="flex justify-between pr-2 border-r border-slate-200 dark:border-slate-700">
+            <span class="text-slate-500">Total Pages:</span>
+            <span id="specPages" class="font-bold text-slate-700 dark:text-slate-200">1</span>
+          </div>
+          <div class="flex justify-between pl-2">
+            <span class="text-slate-500">File Payload:</span>
+            <span id="specFileSize" class="font-bold text-slate-700 dark:text-slate-200">240 KB</span>
+          </div>
+          <div class="flex justify-between pr-2 border-r border-slate-200 dark:border-slate-700">
+            <span class="text-slate-500">Print Size (A4):</span>
+            <span id="specPrintSize" class="font-bold text-slate-700 dark:text-slate-200">190 x 190 mm</span>
+          </div>
+          <div class="flex justify-between pl-2">
+            <span class="text-slate-500">Security Layer:</span>
+            <span class="font-bold text-emerald-500">100% On-Device</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions from Analyzer -->
+      <div class="flex gap-2 pt-1">
+        <button onclick="viewer.reEditDocument(); document.getElementById('inspectorModal').classList.add('hidden');" class="flex-1 py-2.5 bg-amber-500 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-95">
+          <i class="fa-solid fa-sliders"></i> Re-Tune & Crop in Studio
+        </button>
+        <button onclick="document.getElementById('inspectorModal').classList.add('hidden')" class="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl font-semibold">
+          Close
+        </button>
       </div>
     </div>
   </div>
@@ -1267,6 +1460,42 @@
     </div>
   </div>
 
+  <!-- NEW MODAL 20: N-UP Multi-Page Handout Creator (2 or 4 Pages in 1 A4 Sheet) -->
+  <div id="nUpModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl p-5 space-y-4 border border-slate-200 dark:border-slate-800 text-xs">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold flex items-center gap-1.5">
+          <i class="fa-solid fa-table-cells text-indigo-500"></i> N-Up Multi-Page Handouts
+        </h3>
+        <button onclick="document.getElementById('nUpModal').classList.add('hidden')" class="text-slate-400">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <p class="text-[11px] text-slate-500">Combine multiple pages of notes or books onto a single printable A4 page (e.g. 2 pages side-by-side or 4-page grid) to save printing paper.</p>
+
+      <div class="border-2 border-dashed border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 p-4 rounded-2xl text-center">
+        <input type="file" id="nUpPdfInput" accept="application/pdf" class="hidden">
+        <label for="nUpPdfInput" class="cursor-pointer block space-y-1">
+          <i class="fa-solid fa-file-pdf text-2xl text-indigo-500 mb-1"></i>
+          <p id="nUpFileLabel" class="font-bold text-slate-800 dark:text-slate-200">Select Multi-Page PDF</p>
+        </label>
+      </div>
+
+      <div>
+        <label class="block font-bold text-slate-500 mb-1">Layout Format</label>
+        <select id="nUpLayoutSelect" class="w-full p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl font-semibold">
+          <option value="2">2 Pages Per Sheet (Side by Side)</option>
+          <option value="4" selected>4 Pages Per Sheet (2x2 Grid)</option>
+        </select>
+      </div>
+
+      <button id="btnExecuteNUp" onclick="proTools.executeNUp()" disabled class="w-full py-2.5 bg-indigo-600 disabled:opacity-50 text-white rounded-xl font-bold shadow-md">
+        Generate Compact Handout
+      </button>
+    </div>
+  </div>
+
   <!-- Modal 19: Offline Barcode & QR Code Reader -->
   <div id="barcodeScanModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl p-5 space-y-4 border border-slate-200 dark:border-slate-800 text-xs">
@@ -1360,8 +1589,8 @@
        ======================================================= */
     class LocalDocDB {
       constructor() {
-        this.dbName = 'DocuScanPro_DB_v2';
-        this.version = 2;
+        this.dbName = 'DocuScanPro_DB_v3';
+        this.version = 3;
         this.db = null;
       }
 
@@ -1385,11 +1614,24 @@
       }
 
       async saveDocument(doc) {
+        // iOS WebKit Bug Fix: Convert Blob to ArrayBuffer before storing
+        const docToStore = { ...doc };
+        if (docToStore.pdfBlob instanceof Blob) {
+          docToStore.pdfBuffer = await docToStore.pdfBlob.arrayBuffer();
+          delete docToStore.pdfBlob; // Remove the raw Blob to avoid WebKit DataCloneError
+        }
+
         return new Promise((resolve, reject) => {
           const tx = this.db.transaction('documents', 'readwrite');
           const store = tx.objectStore('documents');
-          const req = store.put(doc);
-          req.onsuccess = () => resolve(doc);
+          const req = store.put(docToStore);
+          req.onsuccess = () => {
+            // Reattach the pdfBlob for immediate in-memory use
+            if (docToStore.pdfBuffer) {
+              doc.pdfBlob = new Blob([docToStore.pdfBuffer], { type: 'application/pdf' });
+            }
+            resolve(doc);
+          };
           req.onerror = (e) => reject(e.target.error);
         });
       }
@@ -1399,7 +1641,16 @@
           const tx = this.db.transaction('documents', 'readonly');
           const store = tx.objectStore('documents');
           const req = store.getAll();
-          req.onsuccess = () => resolve(req.result || []);
+          req.onsuccess = () => {
+            const list = req.result || [];
+            // Reconstruct Blob instances from stored ArrayBuffer for each record
+            list.forEach(item => {
+              if (item.pdfBuffer && !item.pdfBlob) {
+                item.pdfBlob = new Blob([item.pdfBuffer], { type: 'application/pdf' });
+              }
+            });
+            resolve(list);
+          };
           req.onerror = (e) => reject(e.target.error);
         });
       }
@@ -1443,6 +1694,7 @@
         this.isRedactActive = false;
         this.isHighlightActive = false;
         this.isEraserActive = false;
+        this.isCompiling = false; // Lock flag to prevent double-click crashes
         this.watermarkSettings = null;
 
         // 4 draggable crop corners
@@ -1475,12 +1727,13 @@
 
       renderCarousel() {
         const strip = document.getElementById('pagesThumbStrip');
+        if (!strip) return;
         strip.innerHTML = '';
         document.getElementById('carouselPageCount').textContent = this.pages.length;
 
         this.pages.forEach((page, idx) => {
           const item = document.createElement('div');
-          item.className = `shrink-0 w-16 h-20 rounded-xl overflow-hidden border-2 relative cursor-pointer ${idx === this.currentIndex ? 'border-brand-600 ring-2 ring-brand-500/30' : 'border-slate-300 dark:border-slate-700 opacity-70'}`;
+          item.className = `shrink-0 w-16 h-22 rounded-2xl overflow-hidden border-2 relative cursor-pointer transition-all ${idx === this.currentIndex ? 'border-brand-600 ring-2 ring-brand-500/40 shadow-md scale-[1.02]' : 'border-slate-300 dark:border-slate-700 opacity-70 hover:opacity-100'}`;
           item.onclick = () => {
             this.currentIndex = idx;
             this.renderCarousel();
@@ -1492,13 +1745,13 @@
           img.className = 'w-full h-full object-cover';
 
           const num = document.createElement('span');
-          num.className = 'absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1 rounded font-bold';
+          num.className = 'absolute bottom-1 right-1 bg-black/75 text-white text-[9px] px-1.5 py-0.2 rounded-md font-bold shadow-xs';
           num.textContent = idx + 1;
 
           // Delete single page button
           if (this.pages.length > 1) {
             const del = document.createElement('button');
-            del.className = 'absolute top-0.5 right-0.5 w-4 h-4 bg-rose-600 text-white text-[8px] rounded-full flex items-center justify-center';
+            del.className = 'absolute top-1 right-1 w-4 h-4 bg-rose-600 hover:bg-rose-700 text-white text-[9px] rounded-full flex items-center justify-center shadow-md active:scale-90 transition';
             del.innerHTML = '×';
             del.onclick = (e) => {
               e.stopPropagation();
@@ -1654,6 +1907,23 @@
         this.pages[this.currentIndex].currentData = this.canvas.toDataURL('image/jpeg', 0.95);
         this.renderCarousel();
         app.showToast('Colors inverted!');
+      }
+
+      /* Clone / Duplicate Current Page in Scan Queue */
+      cloneCurrentPage() {
+        if (!this.pages[this.currentIndex]) return;
+        const cur = this.pages[this.currentIndex];
+        const cloned = {
+          originalData: cur.originalData,
+          currentData: cur.currentData,
+          rotation: cur.rotation,
+          filter: cur.filter
+        };
+        this.pages.splice(this.currentIndex + 1, 0, cloned);
+        this.currentIndex++;
+        this.renderCarousel();
+        this.renderCurrentPage();
+        app.showToast('Page duplicated successfully!');
       }
 
       /* High Performance Filter Algorithms */
@@ -2027,92 +2297,220 @@
 
       /* Compile High-Resolution PDF with Page Numbers and save to on-device IndexedDB */
       async saveAndCompilePdf() {
+        if (this.isCompiling) return; // Prevent concurrent re-entry
+        this.isCompiling = true;
+
+        const saveBtn = document.querySelector('button[onclick="editor.saveAndCompilePdf()"]');
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        }
         app.showToast('Compiling high-resolution PDF...');
-        const { jsPDF } = window.jspdf;
 
-        const pageSize = document.getElementById('docMetaPageSize').value;
-        const quality = parseFloat(document.getElementById('docMetaQuality').value);
-        const title = document.getElementById('docMetaTitle').value.trim() || 'Scanned_Doc';
-        const folder = document.getElementById('docMetaFolder').value;
-        const tags = document.getElementById('docMetaTags').value.split(',').map(t => t.trim()).filter(Boolean);
-        const pageNumSetting = document.getElementById('docMetaPageNumbers').value;
-        const marginPx = parseFloat(document.getElementById('docMetaMargins').value) || 0;
+        try {
+          if (!this.pages || this.pages.length === 0) {
+            app.showToast('No pages to save!');
+            return;
+          }
 
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'pt',
-          format: pageSize
-        });
+          const { jsPDF } = window.jspdf;
+          const pageSizeSetting = document.getElementById('docMetaPageSize')?.value || 'original-fit';
+          const quality = parseFloat(document.getElementById('docMetaQuality')?.value || '0.80');
+          const title = (document.getElementById('docMetaTitle')?.value || '').trim() || `Scan_${new Date().toISOString().slice(0,10)}_${Math.floor(100+Math.random()*900)}`;
+          const folder = document.getElementById('docMetaFolder')?.value || 'Uncategorized';
+          const tags = (document.getElementById('docMetaTags')?.value || '').split(',').map(t => t.trim()).filter(Boolean);
+          const pageNumSetting = document.getElementById('docMetaPageNumbers')?.value || 'bottom-center';
+          const marginPx = parseFloat(document.getElementById('docMetaMargins')?.value || '0');
 
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
+          // Helper to safely load and optimize images to prevent mobile browser memory freeze
+          const processPageImage = (dataUrl, rot) => {
+            return new Promise((resolve, reject) => {
+              const img = new Image();
+              img.onload = () => {
+                let origW = img.naturalWidth || img.width;
+                let origH = img.naturalHeight || img.height;
 
-        const renderWidth = pageWidth - (marginPx * 2);
-        const renderHeight = pageHeight - (marginPx * 2);
+                // Max dimension cap (2000px is crystal clear 300 DPI print quality and prevents mobile RAM lockups)
+                const maxDim = 2000;
+                let targetW = origW;
+                let targetH = origH;
+                if (Math.max(origW, origH) > maxDim) {
+                  const scale = maxDim / Math.max(origW, origH);
+                  targetW = Math.round(origW * scale);
+                  targetH = Math.round(origH * scale);
+                }
 
-        const romanNumerals = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV"];
+                const c = document.createElement('canvas');
+                const ctx = c.getContext('2d');
 
-        for (let i = 0; i < this.pages.length; i++) {
-          if (i > 0) pdf.addPage(pageSize, 'portrait');
+                let finalW = targetW;
+                let finalH = targetH;
 
-          const tempCanvas = document.createElement('canvas');
-          const tCtx = tempCanvas.getContext('2d');
-          const img = await this.loadImage(this.pages[i].currentData);
+                if (rot % 180 !== 0) {
+                  c.width = targetH;
+                  c.height = targetW;
+                  finalW = targetH;
+                  finalH = targetW;
+                } else {
+                  c.width = targetW;
+                  c.height = targetH;
+                }
 
-          const rot = this.pages[i].rotation;
-          if (rot % 180 !== 0) {
-            tempCanvas.width = img.height;
-            tempCanvas.height = img.width;
+                ctx.save();
+                ctx.translate(c.width / 2, c.height / 2);
+                ctx.rotate((rot * Math.PI) / 180);
+                ctx.drawImage(img, -targetW / 2, -targetH / 2, targetW, targetH);
+                ctx.restore();
+
+                if (this.watermarkSettings) {
+                  this.drawWatermarkOnCanvas(ctx, c.width, c.height);
+                }
+
+                resolve({
+                  dataUrl: c.toDataURL('image/jpeg', quality),
+                  width: finalW,
+                  height: finalH
+                });
+              };
+              img.onerror = () => reject(new Error('Failed to load page image'));
+              img.src = dataUrl;
+            });
+          };
+
+          // Process Page 1 first to establish PDF geometry
+          const firstPageProcessed = await processPageImage(this.pages[0].currentData, this.pages[0].rotation || 0);
+          const firstW = firstPageProcessed.width;
+          const firstH = firstPageProcessed.height;
+
+          const isSquareOrCustom = (pageSizeSetting === 'match-image') || 
+                                   (pageSizeSetting === 'original-fit') ||
+                                   (Math.abs(firstW - firstH) < (Math.max(firstW, firstH) * 0.12));
+
+          let pdf;
+          if (isSquareOrCustom) {
+            // Keep true aspect ratio to prevent stretching or distorting
+            pdf = new jsPDF({
+              orientation: firstW >= firstH ? 'landscape' : 'portrait',
+              unit: 'pt',
+              format: [firstW, firstH]
+            });
+          } else if (pageSizeSetting === 'a4-landscape') {
+            pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+          } else if (pageSizeSetting === 'letter') {
+            pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
           } else {
-            tempCanvas.width = img.width;
-            tempCanvas.height = img.height;
+            pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
           }
 
-          tCtx.save();
-          tCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
-          tCtx.rotate((rot * Math.PI) / 180);
-          tCtx.drawImage(img, -img.width / 2, -img.height / 2);
-          tCtx.restore();
+          const romanNumerals = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV"];
 
-          if (this.watermarkSettings) {
-            this.drawWatermarkOnCanvas(tCtx, tempCanvas.width, tempCanvas.height);
+          for (let i = 0; i < this.pages.length; i++) {
+            const pageObj = (i === 0) 
+              ? firstPageProcessed 
+              : await processPageImage(this.pages[i].currentData, this.pages[i].rotation || 0);
+
+            const pW = pageObj.width;
+            const pH = pageObj.height;
+
+            if (i > 0) {
+              if (isSquareOrCustom) {
+                pdf.addPage([pW, pH], pW >= pH ? 'landscape' : 'portrait');
+              } else if (pageSizeSetting === 'a4-landscape') {
+                pdf.addPage('a4', 'landscape');
+              } else {
+                pdf.addPage('a4', 'portrait');
+              }
+            }
+
+            const docW = pdf.internal.pageSize.getWidth();
+            const docH = pdf.internal.pageSize.getHeight();
+
+            let drawX = 0;
+            let drawY = 0;
+            let drawW = docW;
+            let drawH = docH;
+
+            if (isSquareOrCustom) {
+              drawX = 0;
+              drawY = 0;
+              drawW = docW;
+              drawH = docH;
+            } else if (pageSizeSetting !== 'fill') {
+              const imgRatio = pW / pH;
+              const boxW = docW - marginPx * 2;
+              const boxH = docH - marginPx * 2;
+              const containerRatio = boxW / boxH;
+
+              if (imgRatio > containerRatio) {
+                drawW = boxW;
+                drawH = boxW / imgRatio;
+                drawX = marginPx;
+                drawY = marginPx + (boxH - drawH) / 2;
+              } else {
+                drawH = boxH;
+                drawW = boxH * imgRatio;
+                drawX = marginPx + (boxW - drawW) / 2;
+                drawY = marginPx;
+              }
+            } else {
+              drawX = marginPx;
+              drawY = marginPx;
+              drawW = docW - marginPx * 2;
+              drawH = docH - marginPx * 2;
+            }
+
+            pdf.addImage(pageObj.dataUrl, 'JPEG', drawX, drawY, drawW, drawH, undefined, 'FAST');
+
+            if (!isSquareOrCustom && pageNumSetting !== 'none') {
+              pdf.setFontSize(10);
+              pdf.setTextColor(130, 130, 130);
+              if (pageNumSetting === 'bottom-center') {
+                pdf.text(`Page ${i + 1} of ${this.pages.length}`, docW / 2, docH - 16, { align: 'center' });
+              } else if (pageNumSetting === 'bottom-right') {
+                pdf.text(`Page ${i + 1}`, docW - 36, docH - 16);
+              } else if (pageNumSetting === 'roman') {
+                const r = romanNumerals[i] || `${i + 1}`;
+                pdf.text(`- ${r} -`, docW / 2, docH - 16, { align: 'center' });
+              }
+            }
           }
 
-          const pageJpg = tempCanvas.toDataURL('image/jpeg', quality);
-          pdf.addImage(pageJpg, 'JPEG', marginPx, marginPx, renderWidth, renderHeight, undefined, 'FAST');
+          // Generate binary PDF as ArrayBuffer directly to avoid iOS Blob storage bugs
+          const pdfArrayBuffer = pdf.output('arraybuffer');
+          const pdfBlob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
 
-          // Header / Footer Page Numbering Schemes
-          pdf.setFontSize(10);
-          pdf.setTextColor(130, 130, 130);
+          const newDocRecord = {
+            id: 'doc_' + Date.now(),
+            title: title,
+            folder: folder,
+            tags: tags,
+            pageCount: this.pages.length,
+            sizeBytes: pdfArrayBuffer.byteLength,
+            createdAt: new Date().toISOString(),
+            pdfBuffer: pdfArrayBuffer,
+            pdfBlob: pdfBlob,
+            thumbnail: this.pages[0].currentData
+          };
 
-          if (pageNumSetting === 'bottom-center') {
-            pdf.text(`Page ${i + 1} of ${this.pages.length}`, pageWidth / 2, pageHeight - 16, { align: 'center' });
-          } else if (pageNumSetting === 'bottom-right') {
-            pdf.text(`Page ${i + 1}`, pageWidth - 36, pageHeight - 16);
-          } else if (pageNumSetting === 'roman') {
-            const r = romanNumerals[i] || `${i + 1}`;
-            pdf.text(`- ${r} -`, pageWidth / 2, pageHeight - 16, { align: 'center' });
+          try {
+            await db.saveDocument(newDocRecord);
+          } catch (dbErr) {
+            console.warn('IndexedDB save fallback warning:', dbErr);
+          }
+
+          app.showToast('PDF compiled & saved successfully!');
+          await app.refreshDocumentsList();
+          viewer.openDocument(newDocRecord);
+        } catch (err) {
+          console.error('PDF compilation failed:', err);
+          app.showToast('Compilation error: ' + (err.message || 'Please retry'));
+        } finally {
+          this.isCompiling = false;
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fa-solid fa-file-arrow-down"></i> Save PDF';
           }
         }
-
-        const pdfBlob = pdf.output('blob');
-
-        const newDocRecord = {
-          id: 'doc_' + Date.now(),
-          title: title,
-          folder: folder,
-          tags: tags,
-          pageCount: this.pages.length,
-          sizeBytes: pdfBlob.size,
-          createdAt: new Date().toISOString(),
-          pdfBlob: pdfBlob,
-          thumbnail: this.pages[0].currentData
-        };
-
-        await db.saveDocument(newDocRecord);
-        app.showToast('High-Res PDF created and saved!');
-        await app.refreshDocumentsList();
-        viewer.openDocument(newDocRecord);
       }
 
       loadImage(src) {
@@ -2136,6 +2534,7 @@
         this.selectedPasswordFile = null;
         this.selectedRotateFile = null;
         this.selectedFlattenFile = null;
+        this.selectedNUpFile = null;
         this.lastDecodedBarcode = "";
         this.idFrontData = null;
         this.idBackData = null;
@@ -2229,6 +2628,18 @@
             this.selectedFlattenFile = file;
             document.getElementById('flattenFileLabel').textContent = `${file.name} (${(file.size/1024).toFixed(0)} KB)`;
             document.getElementById('btnExecuteFlatten').disabled = false;
+          };
+        }
+
+        // N-Up PDF Handout selector
+        const nUpIn = document.getElementById('nUpPdfInput');
+        if (nUpIn) {
+          nUpIn.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            this.selectedNUpFile = file;
+            document.getElementById('nUpFileLabel').textContent = `${file.name} (${(file.size/1024).toFixed(0)} KB)`;
+            document.getElementById('btnExecuteNUp').disabled = false;
           };
         }
 
@@ -2343,6 +2754,10 @@
         document.getElementById('flattenModal').classList.remove('hidden');
       }
 
+      openNUpModal() {
+        document.getElementById('nUpModal').classList.remove('hidden');
+      }
+
       openBarcodeScanModal() {
         document.getElementById('barcodeScanModal').classList.remove('hidden');
       }
@@ -2437,6 +2852,102 @@
           viewer.openDocument(flatDoc);
         } catch (err) {
           app.showToast('Flatten failed: ' + err.message);
+        }
+      }
+
+      /* N-Up Multi-Page Handouts (2 or 4 pages per sheet) */
+      async executeNUp() {
+        app.showToast('Generating compact N-Up handout on-device...');
+        try {
+          const layout = parseInt(document.getElementById('nUpLayoutSelect').value) || 4;
+          const arrayBuffer = await this.selectedNUpFile.arrayBuffer();
+          const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          const { jsPDF } = window.jspdf;
+
+          const nPdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+          const pw = nPdf.internal.pageSize.getWidth();
+          const ph = nPdf.internal.pageSize.getHeight();
+          const margin = 20;
+
+          // Render all source pages to images first
+          const pageImages = [];
+          for (let i = 1; i <= pdfDoc.numPages; i++) {
+            const page = await pdfDoc.getPage(i);
+            const viewport = page.getViewport({ scale: 1.5 });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            pageImages.push(canvas.toDataURL('image/jpeg', 0.90));
+          }
+
+          if (layout === 2) {
+            // 2 pages per sheet (top & bottom)
+            const slotW = pw - (margin * 2);
+            const slotH = (ph - (margin * 3)) / 2;
+
+            for (let i = 0; i < pageImages.length; i += 2) {
+              if (i > 0) nPdf.addPage('a4', 'portrait');
+
+              // Page 1
+              nPdf.addImage(pageImages[i], 'JPEG', margin, margin, slotW, slotH, undefined, 'FAST');
+              nPdf.setDrawColor(210, 215, 225);
+              nPdf.rect(margin, margin, slotW, slotH);
+
+              // Page 2
+              if (i + 1 < pageImages.length) {
+                const y2 = margin + slotH + margin;
+                nPdf.addImage(pageImages[i + 1], 'JPEG', margin, y2, slotW, slotH, undefined, 'FAST');
+                nPdf.rect(margin, y2, slotW, slotH);
+              }
+            }
+          } else {
+            // 4 pages per sheet (2x2 grid)
+            const slotW = (pw - (margin * 3)) / 2;
+            const slotH = (ph - (margin * 3)) / 2;
+
+            for (let i = 0; i < pageImages.length; i += 4) {
+              if (i > 0) nPdf.addPage('a4', 'portrait');
+
+              const coords = [
+                { x: margin, y: margin },
+                { x: margin * 2 + slotW, y: margin },
+                { x: margin, y: margin * 2 + slotH },
+                { x: margin * 2 + slotW, y: margin * 2 + slotH }
+              ];
+
+              for (let k = 0; k < 4; k++) {
+                const pIdx = i + k;
+                if (pIdx < pageImages.length) {
+                  nPdf.addImage(pageImages[pIdx], 'JPEG', coords[k].x, coords[k].y, slotW, slotH, undefined, 'FAST');
+                  nPdf.setDrawColor(210, 215, 225);
+                  nPdf.rect(coords[k].x, coords[k].y, slotW, slotH);
+                }
+              }
+            }
+          }
+
+          const nUpBlob = nPdf.output('blob');
+          const nUpDoc = {
+            id: 'nup_' + Date.now(),
+            title: `${this.selectedNUpFile.name.replace(/\.[^/.]+$/, "")}_Handout_${layout}Up`,
+            folder: 'Books & Notes',
+            tags: ['#handout', '#nup'],
+            pageCount: nPdf.getNumberOfPages(),
+            sizeBytes: nUpBlob.size,
+            createdAt: new Date().toISOString(),
+            pdfBlob: nUpBlob,
+            thumbnail: ''
+          };
+
+          await db.saveDocument(nUpDoc);
+          document.getElementById('nUpModal').classList.add('hidden');
+          await app.refreshDocumentsList();
+          app.showToast(`Handout (${layout} pages/sheet) generated!`);
+          viewer.openDocument(nUpDoc);
+        } catch (err) {
+          app.showToast('N-Up generation failed: ' + err.message);
         }
       }
 
@@ -2809,50 +3320,289 @@
         this.currentDoc = null;
         this.currentPdf = null;
         this.zoomLevel = 1.0;
-        this.isNightMode = false;
-        this.viewportContainer = document.getElementById('pdfViewportContainer');
+        this.readingModeIndex = 0; // 0: Normal, 1: Night Invert, 2: Warm Sepia, 3: Forest Emerald
+        this.viewportContainer = null;
         this.extractedTextContent = "";
+        this.pageImages = []; // Cache of rendered page data for instant re-editing & analysis
+        this.currentPageIndex = 1;
+      }
+
+      getViewport() {
+        if (!this.viewportContainer) {
+          this.viewportContainer = document.getElementById('pdfViewportContainer');
+        }
+        return this.viewportContainer;
       }
 
       async openDocument(doc) {
         this.currentDoc = doc;
-        document.getElementById('viewerDocTitle').textContent = doc.title;
+        this.pageImages = [];
+        this.currentPageIndex = 1;
+
+        // Populate doc title & size
+        const titleEl = document.getElementById('viewerDocTitle');
+        if (titleEl) titleEl.textContent = doc.title;
+        const sizeKb = Math.round((doc.sizeBytes || 0) / 1024);
+        const sizeBadge = document.getElementById('viewerFileSizeBadge');
+        if (sizeBadge) sizeBadge.textContent = `${sizeKb} KB`;
+
         app.showView('viewer');
-        this.viewportContainer.innerHTML = '<div class="py-12 text-center text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading document...</div>';
+        const container = this.getViewport();
+        if (container) {
+          container.innerHTML = `
+            <div class="py-20 text-center space-y-3">
+              <div class="w-10 h-10 mx-auto rounded-2xl bg-brand-600/20 text-brand-400 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+              </div>
+              <p class="text-xs text-slate-300 font-semibold">Opening document...</p>
+            </div>`;
+        }
 
         try {
-          const arrayBuffer = await doc.pdfBlob.arrayBuffer();
+          let arrayBuffer;
+          if (doc.pdfBuffer) {
+            arrayBuffer = doc.pdfBuffer;
+          } else if (doc.pdfBlob) {
+            arrayBuffer = await doc.pdfBlob.arrayBuffer();
+          }
+
+          if (!arrayBuffer) throw new Error('Missing PDF binary data');
+
           const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
           this.currentPdf = await loadingTask.promise;
-          document.getElementById('viewerPageStatus').textContent = `${this.currentPdf.numPages} Pages`;
-          this.renderAllPdfPages();
+
+          const pageStatus = document.getElementById('viewerPageStatus');
+          if (pageStatus) pageStatus.textContent = `1 of ${this.currentPdf.numPages}`;
+
+          const floatingNum = document.getElementById('floatingPageNum');
+          if (floatingNum) floatingNum.textContent = `1 / ${this.currentPdf.numPages}`;
+
+          await this.renderAllPdfPages();
           this.extractTextForTts();
+          this.buildThumbnailDrawer();
         } catch (err) {
-          console.error(err);
-          this.viewportContainer.innerHTML = '<div class="p-6 text-rose-400 text-xs">Error opening PDF file.</div>';
+          console.error('PDF render error:', err);
+          const container = this.getViewport();
+          if (container) {
+            // High-res fallback: If pdfjs encounters an issue, render the cached thumbnail if available
+            if (doc.thumbnail) {
+              container.innerHTML = `
+                <div class="relative rounded-2xl overflow-hidden shadow-2xl bg-white flex flex-col items-center justify-center p-0 border border-slate-700/60" style="max-width: 100%;">
+                  <img src="${doc.thumbnail}" class="block rounded-xl max-w-full h-auto object-contain" />
+                </div>
+              `;
+              app.showToast('Rendered via document cache');
+            } else {
+              container.innerHTML = `
+                <div class="p-6 text-center space-y-2">
+                  <i class="fa-solid fa-triangle-exclamation text-rose-400 text-2xl"></i>
+                  <p class="text-xs text-rose-400 font-bold">Failed to load document preview</p>
+                  <p class="text-[11px] text-slate-400">${err.message || 'Corrupted file'}</p>
+                </div>`;
+            }
+          }
         }
       }
 
       async renderAllPdfPages() {
-        this.viewportContainer.innerHTML = '';
+        const container = this.getViewport();
+        if (!container || !this.currentPdf) return;
+        container.innerHTML = '';
+        this.pageImages = [];
+
+        // Update zoom percentage badge
+        const zoomLabel = document.getElementById('zoomPercentLabel');
+        if (zoomLabel) zoomLabel.textContent = `${Math.round(this.zoomLevel * 100)}%`;
+
+        let modeClass = '';
+        if (this.readingModeIndex === 1) modeClass = 'pdf-night-mode';
+        else if (this.readingModeIndex === 2) modeClass = 'pdf-sepia-mode';
+        else if (this.readingModeIndex === 3) modeClass = 'pdf-emerald-mode';
+
         for (let pageNum = 1; pageNum <= this.currentPdf.numPages; pageNum++) {
           const page = await this.currentPdf.getPage(pageNum);
           const viewport = page.getViewport({ scale: this.zoomLevel });
 
+          // Elevated realistic card wrapper with dynamic aspect-ratio support
           const pageWrapper = document.createElement('div');
-          pageWrapper.className = `relative rounded-2xl overflow-hidden shadow-2xl bg-white ${this.isNightMode ? 'pdf-night-mode' : ''}`;
+          pageWrapper.id = `viewer-page-${pageNum}`;
+          pageWrapper.className = `relative rounded-2xl overflow-hidden shadow-2xl bg-white flex flex-col items-center justify-center p-0 transition-all duration-200 border border-slate-700/60 ${modeClass}`;
+          pageWrapper.style.maxWidth = '100%';
 
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
           canvas.height = viewport.height;
           canvas.width = viewport.width;
-          canvas.className = 'max-w-full h-auto block';
+          canvas.style.maxWidth = '100%';
+          canvas.style.height = 'auto';
+          canvas.style.objectFit = 'contain';
+          canvas.className = 'block rounded-xl';
 
           await page.render({ canvasContext: context, viewport: viewport }).promise;
 
+          // Floating page index badge
+          const badge = document.createElement('div');
+          badge.className = 'absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-md pointer-events-none';
+          badge.textContent = `Page ${pageNum}`;
+
+          // Cache page snapshot for re-edit & inspector
+          const imgUrl = canvas.toDataURL('image/jpeg', 0.92);
+          this.pageImages.push({
+            dataUrl: imgUrl,
+            width: viewport.width,
+            height: viewport.height
+          });
+
           pageWrapper.appendChild(canvas);
-          this.viewportContainer.appendChild(pageWrapper);
+          pageWrapper.appendChild(badge);
+          container.appendChild(pageWrapper);
         }
+      }
+
+      nextPage() {
+        if (!this.currentPdf) return;
+        if (this.currentPageIndex < this.currentPdf.numPages) {
+          this.currentPageIndex++;
+          this.scrollToPage(this.currentPageIndex);
+        }
+      }
+
+      prevPage() {
+        if (!this.currentPdf) return;
+        if (this.currentPageIndex > 1) {
+          this.currentPageIndex--;
+          this.scrollToPage(this.currentPageIndex);
+        }
+      }
+
+      scrollToPage(num) {
+        const target = document.getElementById(`viewer-page-${num}`);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          document.getElementById('viewerPageStatus').textContent = `${num} of ${this.currentPdf.numPages}`;
+          document.getElementById('floatingPageNum').textContent = `${num} / ${this.currentPdf.numPages}`;
+        }
+      }
+
+      buildThumbnailDrawer() {
+        const list = document.getElementById('drawerThumbList');
+        if (!list) return;
+        list.innerHTML = '';
+
+        this.pageImages.forEach((imgObj, idx) => {
+          const t = document.createElement('div');
+          t.className = 'shrink-0 w-16 h-20 rounded-xl overflow-hidden border border-slate-700 relative cursor-pointer active:scale-95 hover:border-brand-500 transition shadow-sm';
+          t.innerHTML = `
+            <img src="${imgObj.dataUrl}" class="w-full h-full object-cover">
+            <span class="absolute bottom-1 right-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded-md font-bold">${idx + 1}</span>
+          `;
+          t.onclick = () => {
+            this.currentPageIndex = idx + 1;
+            this.scrollToPage(this.currentPageIndex);
+            this.togglePageNavDrawer();
+          };
+          list.appendChild(t);
+        });
+      }
+
+      togglePageNavDrawer() {
+        const drawer = document.getElementById('pageNavDrawer');
+        if (drawer) drawer.classList.toggle('hidden');
+      }
+
+      /* Instant 1-Tap Re-Edit inside Studio */
+      reEditDocument() {
+        if (!this.pageImages || this.pageImages.length === 0) {
+          app.showToast('Document loading, please wait...');
+          return;
+        }
+
+        const urls = this.pageImages.map(p => p.dataUrl);
+        app.showView('editor');
+        editor.loadPages(urls);
+        document.getElementById('docMetaTitle').value = this.currentDoc.title || 'Scanned_Doc';
+        app.showToast('Document opened in Studio for adjustments!');
+      }
+
+      /* Detailed On-Device Scan Analysis & Health Diagnostic */
+      openInspectorModal() {
+        if (!this.pageImages || this.pageImages.length === 0) {
+          app.showToast('Page analysis not ready');
+          return;
+        }
+
+        const firstPage = this.pageImages[0];
+        const w = Math.round(firstPage.width);
+        const h = Math.round(firstPage.height);
+        const ratio = (w / h).toFixed(2);
+
+        let aspectLabel = 'Standard A4';
+        if (Math.abs(w - h) < Math.max(w, h) * 0.12) {
+          aspectLabel = '1:1 Square';
+        } else if (w > h) {
+          aspectLabel = `Landscape (${ratio}:1)`;
+        } else {
+          aspectLabel = `Portrait (1:${(h/w).toFixed(2)})`;
+        }
+
+        // Analyze canvas pixels for real-time luminance & contrast metrics
+        const testImg = new Image();
+        testImg.onload = () => {
+          const sampleC = document.createElement('canvas');
+          sampleC.width = 100;
+          sampleC.height = 100;
+          const sCtx = sampleC.getContext('2d');
+          sCtx.drawImage(testImg, 0, 0, 100, 100);
+          const pData = sCtx.getImageData(0, 0, 100, 100).data;
+
+          let totalLum = 0;
+          let minLum = 255;
+          let maxLum = 0;
+          let colorDiff = 0;
+
+          for (let i = 0; i < pData.length; i += 4) {
+            const r = pData[i];
+            const g = pData[i+1];
+            const b = pData[i+2];
+            const lum = 0.299*r + 0.587*g + 0.114*b;
+            totalLum += lum;
+            if (lum < minLum) minLum = lum;
+            if (lum > maxLum) maxLum = lum;
+            colorDiff += Math.abs(r - g) + Math.abs(g - b);
+          }
+
+          const avgLum = Math.round(totalLum / (pData.length / 4));
+          const contrastSpread = maxLum - minLum;
+          const isVibrantColor = colorDiff > 15000;
+
+          // Quality score calculation
+          const score = Math.min(99, Math.max(65, Math.round((contrastSpread / 255) * 60 + (avgLum > 100 ? 35 : 20))));
+
+          // Populate Inspector Elements
+          document.getElementById('inspectScoreNum').textContent = `${score}%`;
+          document.getElementById('barContrast').style.width = `${Math.min(100, Math.round((contrastSpread / 255) * 100))}%`;
+          document.getElementById('metricContrastScore').textContent = `${Math.min(100, Math.round((contrastSpread / 255) * 100))}%`;
+
+          const brightScore = Math.min(100, Math.round((avgLum / 255) * 100));
+          document.getElementById('barBright').style.width = `${brightScore}%`;
+          document.getElementById('metricBrightScore').textContent = `${brightScore}%`;
+
+          document.getElementById('metricColorType').textContent = isVibrantColor ? 'Full 24-bit RGB' : 'Monochrome / Ink';
+          document.getElementById('metricColorRatio').textContent = isVibrantColor ? 'Vibrant' : 'Clean Contrast';
+
+          document.getElementById('specAspectRatio').textContent = aspectLabel;
+          document.getElementById('specDimensions').textContent = `${w} × ${h} px`;
+          document.getElementById('specPages').textContent = `${this.currentPdf.numPages}`;
+          document.getElementById('specFileSize').textContent = `${Math.round(this.currentDoc.sizeBytes / 1024)} KB`;
+
+          // Print size estimates
+          const printW = Math.round((w / 72) * 25.4);
+          const printH = Math.round((h / 72) * 25.4);
+          document.getElementById('specPrintSize').textContent = `${printW} × ${printH} mm`;
+
+          document.getElementById('inspectorModal').classList.remove('hidden');
+        };
+        testImg.src = firstPage.dataUrl;
       }
 
       async extractTextForTts() {
@@ -2899,11 +3649,10 @@
         }
       }
 
-      toggleNightMode() {
-        this.isNightMode = !this.isNightMode;
-        const btn = document.getElementById('viewerNightBtn');
-        btn.classList.toggle('text-amber-400', !this.isNightMode);
-        btn.classList.toggle('text-indigo-400', this.isNightMode);
+      cycleColorMode() {
+        this.readingModeIndex = (this.readingModeIndex + 1) % 4;
+        const modes = ['Normal Light', 'Night Invert', 'Warm Sepia Book', 'Forest Emerald Night'];
+        app.showToast(`Reading Mode: ${modes[this.readingModeIndex]}`);
         this.renderAllPdfPages();
       }
 
@@ -2939,15 +3688,17 @@
 
       downloadCurrentPdf() {
         if (!this.currentDoc) return;
+        const blob = this.currentDoc.pdfBlob || new Blob([this.currentDoc.pdfBuffer], { type: 'application/pdf' });
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(this.currentDoc.pdfBlob);
+        a.href = URL.createObjectURL(blob);
         a.download = `${this.currentDoc.title}.pdf`;
         a.click();
       }
 
       async shareDocument() {
         if (!this.currentDoc) return;
-        const file = new File([this.currentDoc.pdfBlob], `${this.currentDoc.title}.pdf`, { type: 'application/pdf' });
+        const blob = this.currentDoc.pdfBlob || new Blob([this.currentDoc.pdfBuffer], { type: 'application/pdf' });
+        const file = new File([blob], `${this.currentDoc.title}.pdf`, { type: 'application/pdf' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
@@ -2962,7 +3713,8 @@
       }
 
       printDocument() {
-        const url = URL.createObjectURL(this.currentDoc.pdfBlob);
+        const blob = this.currentDoc.pdfBlob || new Blob([this.currentDoc.pdfBuffer], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';
         iframe.src = url;
@@ -3348,8 +4100,24 @@
           if (el) el.classList.toggle('hidden', v !== viewName);
         });
 
-        // Hide FAB on editor and viewer screens
-        document.getElementById('fabContainer').style.display = (viewName === 'home') ? 'block' : 'none';
+        // Hide main header and bottom navigation when in viewer for full-screen edge-to-edge reading
+        const header = document.querySelector('header');
+        const nav = document.querySelector('nav');
+        const fab = document.getElementById('fabContainer');
+
+        if (viewName === 'viewer') {
+          if (header) header.classList.add('hidden');
+          if (nav) nav.classList.add('hidden');
+          if (fab) fab.style.display = 'none';
+        } else if (viewName === 'editor') {
+          if (header) header.classList.add('hidden');
+          if (nav) nav.classList.add('hidden');
+          if (fab) fab.style.display = 'none';
+        } else {
+          if (header) header.classList.remove('hidden');
+          if (nav) nav.classList.remove('hidden');
+          if (fab) fab.style.display = 'block';
+        }
       }
 
       setFolderFilter(folder) {
@@ -3452,19 +4220,23 @@
       initEventListeners() {
         const searchInput = document.getElementById('searchInput');
         const clearBtn = document.getElementById('clearSearchBtn');
-        searchInput.oninput = () => {
-          clearBtn.classList.toggle('hidden', !searchInput.value);
-          this.filterAndRenderDocuments();
-        };
-        clearBtn.onclick = () => {
-          searchInput.value = '';
-          clearBtn.classList.add('hidden');
-          this.filterAndRenderDocuments();
-        };
+        if (searchInput) {
+          searchInput.oninput = () => {
+            if (clearBtn) clearBtn.classList.toggle('hidden', !searchInput.value);
+            this.filterAndRenderDocuments();
+          };
+        }
+        if (clearBtn) {
+          clearBtn.onclick = () => {
+            searchInput.value = '';
+            clearBtn.classList.add('hidden');
+            this.filterAndRenderDocuments();
+          };
+        }
 
         // Phone native camera capture
         const handleNativeCapture = (e) => {
-          const file = e.target.files[0];
+          const file = e.target.files && e.target.files[0];
           if (!file) return;
           const r = new FileReader();
           r.onload = (evt) => {
@@ -3481,11 +4253,11 @@
           if (el) el.onchange = handleNativeCapture;
         });
 
-        // Add additional page via camera
-        const addPageCam = document.getElementById('addPageNativeCameraInput');
-        if (addPageCam) {
-          addPageCam.onchange = (e) => {
-            const file = e.target.files[0];
+        // Studio Big "+" Camera & Gallery triggers (Add continuous pages)
+        const studioBigCam = document.getElementById('studioBigPlusCameraInput');
+        if (studioBigCam) {
+          studioBigCam.onchange = (e) => {
+            const file = e.target.files && e.target.files[0];
             if (!file) return;
             const r = new FileReader();
             r.onload = (evt) => {
@@ -3498,66 +4270,82 @@
               editor.currentIndex = editor.pages.length - 1;
               editor.renderCarousel();
               editor.renderCurrentPage();
-              this.showToast('Page added to document');
+              this.showToast(`Page ${editor.pages.length} added!`);
             };
             r.readAsDataURL(file);
             e.target.value = '';
           };
         }
 
-        // Open external PDF file
-        document.getElementById('externalPdfInput').onchange = (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          const virtualDoc = {
-            id: 'external_' + Date.now(),
-            title: file.name.replace(/\.[^/.]+$/, ""),
-            folder: 'Phone Storage',
-            sizeBytes: file.size,
-            pdfBlob: file,
-            createdAt: new Date().toISOString()
+        const studioBigGal = document.getElementById('studioBigPlusGalleryInput');
+        if (studioBigGal) {
+          studioBigGal.onchange = (e) => {
+            const files = Array.from(e.target.files || []);
+            if (files.length === 0) return;
+            let loaded = 0;
+            files.forEach(f => {
+              const r = new FileReader();
+              r.onload = (evt) => {
+                editor.pages.push({
+                  originalData: evt.target.result,
+                  currentData: evt.target.result,
+                  rotation: 0,
+                  filter: 'original'
+                });
+                loaded++;
+                if (loaded === files.length) {
+                  editor.currentIndex = editor.pages.length - 1;
+                  editor.renderCarousel();
+                  editor.renderCurrentPage();
+                  this.showToast(`${files.length} pages appended!`);
+                }
+              };
+              r.readAsDataURL(f);
+            });
+            e.target.value = '';
           };
-          viewer.openDocument(virtualDoc);
-        };
+        }
+
+        // Open external PDF file
+        const externalPdfInput = document.getElementById('externalPdfInput');
+        if (externalPdfInput) {
+          externalPdfInput.onchange = (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            const virtualDoc = {
+              id: 'external_' + Date.now(),
+              title: file.name.replace(/\.[^/.]+$/, ""),
+              folder: 'Phone Storage',
+              sizeBytes: file.size,
+              pdfBlob: file,
+              createdAt: new Date().toISOString()
+            };
+            viewer.openDocument(virtualDoc);
+            e.target.value = '';
+          };
+        }
 
         // Direct Photos to PDF batch
-        document.getElementById('directPhotosToPdfInput').onchange = (e) => {
-          const files = Array.from(e.target.files);
-          if (files.length === 0) return;
-          const readers = files.map(file => {
-            return new Promise((resolve) => {
-              const r = new FileReader();
-              r.onload = (evt) => resolve(evt.target.result);
-              r.readAsDataURL(file);
+        const directPhotosInput = document.getElementById('directPhotosToPdfInput');
+        if (directPhotosInput) {
+          directPhotosInput.onchange = (e) => {
+            const files = Array.from(e.target.files || []);
+            if (files.length === 0) return;
+            const readers = files.map(file => {
+              return new Promise((resolve) => {
+                const r = new FileReader();
+                r.onload = (evt) => resolve(evt.target.result);
+                r.readAsDataURL(file);
+              });
             });
-          });
-          Promise.all(readers).then(results => {
-            this.showView('editor');
-            editor.loadPages(results);
-            this.showToast(`${results.length} photos loaded for PDF!`);
-          });
-        };
-
-        // Add extra page via gallery in editor
-        document.getElementById('addPageInput').onchange = (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          const r = new FileReader();
-          r.onload = (evt) => {
-            editor.pages.push({
-              originalData: evt.target.result,
-              currentData: evt.target.result,
-              rotation: 0,
-              filter: 'original'
+            Promise.all(readers).then(results => {
+              this.showView('editor');
+              editor.loadPages(results);
+              this.showToast(`${results.length} photos loaded for PDF!`);
             });
-            editor.currentIndex = editor.pages.length - 1;
-            editor.renderCarousel();
-            editor.renderCurrentPage();
-            this.showToast('Page appended');
+            e.target.value = '';
           };
-          r.readAsDataURL(file);
-          e.target.value = '';
-        };
+        }
       }
 
       showToast(msg, duration = 3000) {
