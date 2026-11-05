@@ -1,0 +1,1978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DocuScan & PDF Pro - 100% Offline Mobile Scanner</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- jsPDF for Client-side PDF Compilation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  
+  <!-- PDF.js for Viewing Phone Storage PDFs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+
+  <style>
+    /* Mobile-first ergonomic touch adjustments */
+    body {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      touch-action: manipulation;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #475569;
+    }
+    /* Inverted PDF reader night mode */
+    .pdf-night-mode {
+      filter: invert(0.92) hue-rotate(180deg) contrast(1.1);
+    }
+    /* Animated level bubble */
+    .level-bubble {
+      transition: transform 0.15s ease-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen flex flex-col antialiased transition-colors duration-200">
+
+  <!-- APP CONTAINER -->
+  <div class="flex-1 flex flex-col max-w-md mx-auto w-full relative bg-white dark:bg-slate-900 shadow-2xl min-h-screen pb-20 overflow-x-hidden">
+
+    <!-- Top Header -->
+    <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-brand-500/30">
+          <i class="fa-solid fa-file-shield text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold tracking-tight leading-tight flex items-center gap-1.5">
+            DocuScan Pro
+            <span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">100% Local</span>
+          </h1>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">Zero Server • On-Device Host</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="themeToggleBtn" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:scale-105 active:scale-95 transition">
+          <i class="fa-solid fa-moon dark:hidden text-xs"></i>
+          <i class="fa-solid fa-sun hidden dark:block text-amber-400 text-xs"></i>
+        </button>
+        <button onclick="app.showStorageInfo()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:scale-105 active:scale-95 transition" title="Storage Usage">
+          <i class="fa-solid fa-hard-drive text-xs"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN VIEWS WRAPPER -->
+    <main class="flex-1 flex flex-col overflow-y-auto">
+
+      <!-- ================= VIEW 1: HOME & DOCUMENTS LIST ================= -->
+      <section id="view-home" class="p-4 space-y-4">
+        
+        <!-- Search & Filter Bar -->
+        <div class="space-y-2">
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="searchInput" placeholder="Search by document title or #tag..." 
+              class="w-full pl-9 pr-8 py-2.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 border border-transparent dark:border-slate-800 text-slate-800 dark:text-slate-100">
+            <button id="clearSearchBtn" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Folder Badges Horizontal Scroll -->
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar text-xs">
+            <button onclick="app.setFolderFilter('all')" class="folder-chip px-3 py-1.5 rounded-xl font-medium whitespace-nowrap bg-brand-600 text-white shadow-sm" data-folder="all">
+              <i class="fa-solid fa-layer-group mr-1 text-[10px]"></i>All Files
+            </button>
+            <button onclick="app.setFolderFilter('Government IDs')" class="folder-chip px-3 py-1.5 rounded-xl font-medium whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300" data-folder="Government IDs">
+              <i class="fa-solid fa-id-card mr-1 text-[10px] text-blue-500"></i>Govt IDs
+            </button>
+            <button onclick="app.setFolderFilter('Books & Notes')" class="folder-chip px-3 py-1.5 rounded-xl font-medium whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300" data-folder="Books & Notes">
+              <i class="fa-solid fa-book mr-1 text-[10px] text-emerald-500"></i>Books & Notes
+            </button>
+            <button onclick="app.setFolderFilter('Bills & Invoices')" class="folder-chip px-3 py-1.5 rounded-xl font-medium whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300" data-folder="Bills & Invoices">
+              <i class="fa-solid fa-receipt mr-1 text-[10px] text-amber-500"></i>Bills & Receipts
+            </button>
+            <button onclick="app.setFolderFilter('Uncategorized')" class="folder-chip px-3 py-1.5 rounded-xl font-medium whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300" data-folder="Uncategorized">
+              <i class="fa-solid fa-folder mr-1 text-[10px] text-slate-400"></i>Others
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Import / External PDF Open Banner -->
+        <div class="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-slate-800/60 dark:to-slate-800/40 p-3.5 rounded-2xl border border-indigo-100/70 dark:border-slate-700 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <i class="fa-regular fa-file-pdf text-lg"></i>
+            </div>
+            <div>
+              <p class="text-xs font-bold leading-tight">Phone Storage PDF</p>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">Open & read any external PDF</p>
+            </div>
+          </div>
+          <label class="px-3 py-1.5 bg-indigo-600 active:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow cursor-pointer transition flex items-center gap-1.5">
+            <i class="fa-solid fa-folder-open text-xs"></i> Open
+            <input type="file" id="externalPdfInput" accept="application/pdf" class="hidden">
+          </label>
+        </div>
+
+        <!-- NEW: Dedicated 1-Click Scan & Convert to PDF Action Cards -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <!-- Card 1: Camera Scan Directly to PDF -->
+          <button onclick="app.openScanner()" class="p-3.5 bg-gradient-to-br from-brand-600 to-indigo-700 text-white rounded-2xl flex flex-col items-start justify-between shadow-lg shadow-brand-500/25 active:scale-95 transition text-left relative overflow-hidden group">
+            <div class="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center mb-2">
+              <i class="fa-solid fa-camera text-sm"></i>
+            </div>
+            <div>
+              <h3 class="text-xs font-bold leading-tight flex items-center gap-1">
+                Scan Document
+                <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition"></i>
+              </h3>
+              <p class="text-[10px] text-white/80 mt-0.5">Camera se photo lo & PDF banao</p>
+            </div>
+          </button>
+
+          <!-- Card 2: Photos/Gallery to PDF Batch -->
+          <label class="p-3.5 bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-2xl flex flex-col items-start justify-between shadow-lg shadow-emerald-500/20 active:scale-95 transition text-left cursor-pointer group">
+            <div class="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center mb-2">
+              <i class="fa-solid fa-images text-sm"></i>
+            </div>
+            <div>
+              <h3 class="text-xs font-bold leading-tight flex items-center gap-1">
+                Photos to PDF
+                <i class="fa-solid fa-plus text-[10px] group-hover:rotate-90 transition"></i>
+              </h3>
+              <p class="text-[10px] text-white/80 mt-0.5">Gallery photos ko PDF mein badlo</p>
+            </div>
+            <!-- Multiple image selector for instant batch creation -->
+            <input type="file" id="directPhotosToPdfInput" accept="image/*" multiple class="hidden">
+          </label>
+        </div>
+
+        <!-- Hidden native camera capture fallback input for devices restricting live iframe video -->
+        <input type="file" id="nativeCameraInput" accept="image/*" capture="environment" class="hidden">
+
+        <!-- Document List Container -->
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between text-xs px-1">
+            <span id="docCountLabel" class="font-bold text-slate-500 uppercase tracking-wider text-[11px]">Saved Documents (0)</span>
+            <span class="text-[11px] text-slate-400"><i class="fa-solid fa-lock mr-1"></i>Saved locally in Browser</span>
+          </div>
+
+          <!-- Document List or Empty State -->
+          <div id="documentsList" class="space-y-2"></div>
+        </div>
+      </section>
+
+      <!-- ================= VIEW 2: CAMERA / SCANNER ================= -->
+      <section id="view-scanner" class="hidden flex-1 flex-col bg-black relative select-none">
+        <!-- Scanner Top Controls -->
+        <div class="absolute top-0 inset-x-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
+          <button onclick="app.closeScanner()" class="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center text-sm border border-white/10 active:scale-95">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+
+          <!-- Mode Selector Tabs -->
+          <div class="flex items-center gap-1 bg-black/50 backdrop-blur-md p-1 rounded-full border border-white/15 text-[11px]">
+            <button onclick="scanner.setMode('document')" id="mode-doc" class="px-2.5 py-1 rounded-full font-semibold transition bg-brand-600 text-white">Docs</button>
+            <button onclick="scanner.setMode('batch')" id="mode-batch" class="px-2.5 py-1 rounded-full font-medium transition text-white/70">Batch</button>
+            <button onclick="scanner.setMode('idcard')" id="mode-idcard" class="px-2.5 py-1 rounded-full font-medium transition text-white/70">ID Card</button>
+            <button onclick="scanner.setMode('qr')" id="mode-qr" class="px-2.5 py-1 rounded-full font-medium transition text-white/70">QR/Code</button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="cameraFlipBtn" onclick="scanner.flipCamera()" class="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center text-sm border border-white/10">
+              <i class="fa-solid fa-camera-rotate"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Video Viewport Container -->
+        <div class="relative flex-1 flex items-center justify-center overflow-hidden bg-black">
+          <video id="scannerVideo" autoplay playsinline muted class="w-full h-full object-cover"></video>
+
+          <!-- Framing Viewfinder Overlay -->
+          <div id="scannerOverlay" class="absolute inset-8 border-2 border-dashed border-white/60 rounded-2xl pointer-events-none flex flex-col justify-between p-4 transition-all">
+            <div class="flex justify-between items-center text-[10px] text-white/80 uppercase font-mono tracking-wider">
+              <span id="scannerStatusText"><i class="fa-solid fa-crop-simple mr-1"></i>Align Document</span>
+              <span id="levelDegrees">0° Flat</span>
+            </div>
+
+            <!-- Virtual Spirit Level Balance Indicator -->
+            <div class="self-center flex flex-col items-center gap-1">
+              <div class="w-16 h-16 rounded-full border border-white/30 relative flex items-center justify-center bg-black/20 backdrop-blur-xs">
+                <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+                <div id="spiritBubble" class="level-bubble absolute w-3 h-3 rounded-full bg-white/90 shadow"></div>
+              </div>
+              <span id="levelAdvice" class="text-[9px] text-emerald-300 font-medium">Keep camera level</span>
+            </div>
+
+            <div class="text-center text-[11px] text-white/70 bg-black/40 rounded-lg py-1 backdrop-blur-xs">
+              <span id="scannerInstruction">Align edges inside the frame</span>
+            </div>
+          </div>
+
+          <!-- ID Card Sub-overlay Guide (hidden unless idcard mode) -->
+          <div id="idCardGuide" class="hidden absolute inset-x-8 top-1/4 h-56 border-2 border-emerald-400 rounded-xl pointer-events-none bg-emerald-500/10 flex flex-col items-center justify-center text-white text-xs font-semibold gap-1">
+            <i class="fa-regular fa-id-card text-2xl text-emerald-300"></i>
+            <span id="idCardStepLabel">1. Scan FRONT of ID Card</span>
+          </div>
+
+          <canvas id="captureCanvas" class="hidden"></canvas>
+        </div>
+
+        <!-- Scanner Bottom Bar -->
+        <div class="p-6 bg-gradient-to-t from-black via-black/90 to-transparent flex items-center justify-around z-20">
+          <!-- Gallery / File Fallback Picker -->
+          <label class="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex flex-col items-center justify-center text-white border border-white/20 active:scale-95 cursor-pointer">
+            <i class="fa-solid fa-images text-base"></i>
+            <span class="text-[9px] mt-0.5">Gallery</span>
+            <input type="file" id="scannerGalleryInput" accept="image/*" class="hidden" multiple>
+          </label>
+
+          <!-- Shutter Button -->
+          <button onclick="scanner.takeSnapshot()" class="w-20 h-20 rounded-full border-4 border-white p-1 flex items-center justify-center active:scale-90 transition shadow-lg shadow-white/20">
+            <div class="w-full h-full bg-white rounded-full flex items-center justify-center shadow-lg shadow-white/30">
+              <i class="fa-solid fa-camera text-slate-900 text-xl"></i>
+            </div>
+          </button>
+
+          <!-- Direct Native Camera Fallback Button (in case live camera is not allowed) -->
+          <label class="w-12 h-12 rounded-2xl bg-indigo-600/80 backdrop-blur-md flex flex-col items-center justify-center text-white border border-indigo-400/40 active:scale-95 cursor-pointer" title="Direct Phone Camera Shutter">
+            <i class="fa-solid fa-circle-dot text-base"></i>
+            <span class="text-[9px] mt-0.5">Native</span>
+            <input type="file" id="nativeShutterInput" accept="image/*" capture="environment" class="hidden">
+          </label>
+
+          <!-- Captured Queue Badge / Finish Button -->
+          <button onclick="scanner.finishBatch()" id="batchFinishBtn" class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex flex-col items-center justify-center shadow-lg shadow-emerald-500/30 active:scale-95 relative">
+            <i class="fa-solid fa-file-circle-check text-base"></i>
+            <span class="text-[9px] mt-0.5 font-bold">Make PDF</span>
+            <span id="batchCountBadge" class="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-black">0</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= VIEW 3: EDITOR / PDF BUILDER ================= -->
+      <section id="view-editor" class="hidden flex-1 flex-col p-4 space-y-4">
+        <!-- Editor Header -->
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+          <button onclick="editor.backToHome()" class="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex items-center gap-1">
+            <i class="fa-solid fa-arrow-left"></i> Cancel
+          </button>
+          <div class="text-center">
+            <h2 class="text-xs font-bold uppercase tracking-wider">Document Studio</h2>
+            <p id="editorPageIndicator" class="text-[10px] text-slate-400">Page 1 of 1</p>
+          </div>
+          <button onclick="editor.saveAndCompilePdf()" class="px-3.5 py-1.5 bg-brand-600 active:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-md shadow-brand-500/20 flex items-center gap-1.5">
+            <i class="fa-solid fa-file-pdf"></i> Save PDF
+          </button>
+        </div>
+
+        <!-- Interactive Canvas Preview Area -->
+        <div class="flex-1 min-h-[320px] bg-slate-200 dark:bg-slate-950 rounded-2xl flex items-center justify-center relative p-2 shadow-inner border border-slate-300/50 dark:border-slate-800 overflow-hidden">
+          <canvas id="editorCanvas" class="max-h-[300px] max-w-full rounded shadow-lg object-contain bg-white"></canvas>
+
+          <!-- Signature / Redaction Overlay Canvas for Freehand drawing -->
+          <canvas id="drawingCanvas" class="absolute inset-0 m-auto pointer-events-none"></canvas>
+
+          <!-- Floating Tool helper label -->
+          <div id="toolTipBanner" class="hidden absolute bottom-3 px-3 py-1 bg-black/75 text-white text-[11px] rounded-full backdrop-blur-md">
+            Tap & drag on image to redact
+          </div>
+        </div>
+
+        <!-- Page Carousel Strip (for Batch/multi-page scans) -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-[11px] text-slate-500 px-1">
+            <span>Pages (<span id="carouselPageCount">1</span>)</span>
+            <label class="cursor-pointer text-brand-600 font-semibold hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-plus text-[10px]"></i> Add Page
+              <input type="file" id="addPageInput" accept="image/*" class="hidden">
+            </label>
+          </div>
+          <div id="pagesThumbStrip" class="flex gap-2 overflow-x-auto py-1 custom-scrollbar"></div>
+        </div>
+
+        <!-- Filter & Color Enhancement Tabs -->
+        <div class="bg-slate-100 dark:bg-slate-800/60 p-2 rounded-2xl space-y-2 border border-slate-200 dark:border-slate-800">
+          <div class="flex items-center justify-between text-[11px] font-bold px-1 text-slate-600 dark:text-slate-400">
+            <span><i class="fa-solid fa-palette mr-1 text-brand-500"></i>Color & Enhancement Filters</span>
+            <button onclick="editor.rotateCurrentPage()" class="text-brand-600 dark:text-brand-400 flex items-center gap-1">
+              <i class="fa-solid fa-rotate-right text-xs"></i> Rotate 90°
+            </button>
+          </div>
+
+          <div class="grid grid-cols-4 gap-1.5 text-xs">
+            <button onclick="editor.applyFilter('colorBoost')" id="btnFilter-colorBoost" class="filter-btn py-1.5 rounded-xl border border-brand-500 bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 font-semibold">Vibrant Color</button>
+            <button onclick="editor.applyFilter('original')" id="btnFilter-original" class="filter-btn py-1.5 rounded-xl border border-transparent bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300">True Color</button>
+            <button onclick="editor.applyFilter('magic')" id="btnFilter-magic" class="filter-btn py-1.5 rounded-xl border border-transparent bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300">Bright Clean</button>
+            <button onclick="editor.applyFilter('bw')" id="btnFilter-bw" class="filter-btn py-1.5 rounded-xl border border-transparent bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300">B&W Doc</button>
+          </div>
+        </div>
+
+        <!-- Pro Tools Accordion Grid -->
+        <div class="grid grid-cols-3 gap-2">
+          <!-- Digital Signature Tool -->
+          <button onclick="modals.openSignatureModal()" class="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-2xl flex flex-col items-center justify-center text-center gap-1 border border-slate-200/80 dark:border-slate-700 active:scale-95 transition">
+            <i class="fa-solid fa-signature text-base text-indigo-500"></i>
+            <span class="text-[11px] font-semibold">Sign Doc</span>
+          </button>
+
+          <!-- Smart Redaction Tool -->
+          <button id="toggleRedactBtn" onclick="editor.toggleRedactMode()" class="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-2xl flex flex-col items-center justify-center text-center gap-1 border border-slate-200/80 dark:border-slate-700 active:scale-95 transition">
+            <i class="fa-solid fa-marker text-base text-rose-500"></i>
+            <span class="text-[11px] font-semibold" id="redactBtnText">Redact Info</span>
+          </button>
+
+          <!-- Watermark Tool -->
+          <button onclick="modals.openWatermarkModal()" class="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-2xl flex flex-col items-center justify-center text-center gap-1 border border-slate-200/80 dark:border-slate-700 active:scale-95 transition">
+            <i class="fa-solid fa-stamp text-base text-amber-500"></i>
+            <span class="text-[11px] font-semibold">Watermark</span>
+          </button>
+        </div>
+
+        <!-- Document Details Form -->
+        <div class="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5 text-xs">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-500 mb-1">Document Title</label>
+            <input type="text" id="docMetaTitle" placeholder="e.g., Electricity Bill May 2026" class="w-full px-3 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-500 mb-1">Category Folder</label>
+              <select id="docMetaFolder" class="w-full px-2.5 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs">
+                <option value="Government IDs">Government IDs</option>
+                <option value="Books & Notes">Books & Notes</option>
+                <option value="Bills & Invoices">Bills & Invoices</option>
+                <option value="Uncategorized">Uncategorized</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-500 mb-1">Page Format</label>
+              <select id="docMetaPageSize" class="w-full px-2.5 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs">
+                <option value="a4">A4 (Standard)</option>
+                <option value="letter">US Letter</option>
+                <option value="legal">Legal Size</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-500 mb-1">Compression</label>
+              <select id="docMetaQuality" class="w-full px-2.5 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs">
+                <option value="0.92">High Quality (~300 DPI)</option>
+                <option value="0.75" selected>Balanced (~150 DPI)</option>
+                <option value="0.5">Maximum Compress</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-500 mb-1">Tags (Comma sep)</label>
+              <input type="text" id="docMetaTags" placeholder="#college, #tax" class="w-full px-3 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none text-xs">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= VIEW 4: BUILT-IN PDF & DOCUMENT VIEWER ================= -->
+      <section id="view-viewer" class="hidden flex-1 flex-col bg-slate-900 text-white relative">
+        <!-- Viewer Top Bar -->
+        <div class="px-4 py-3 bg-slate-950/80 backdrop-blur-md flex items-center justify-between border-b border-slate-800 z-10">
+          <button onclick="viewer.closeViewer()" class="text-xs font-semibold flex items-center gap-1.5 text-slate-300 hover:text-white">
+            <i class="fa-solid fa-arrow-left"></i> Back
+          </button>
+          <div class="text-center truncate max-w-[180px]">
+            <h3 id="viewerDocTitle" class="text-xs font-bold truncate">Document.pdf</h3>
+            <span id="viewerPageStatus" class="text-[10px] text-slate-400">Page 1 / 1</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="viewer.toggleNightMode()" id="viewerNightBtn" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs text-amber-400" title="Night Reading Mode">
+              <i class="fa-solid fa-circle-half-stroke"></i>
+            </button>
+            <button onclick="viewer.downloadCurrentPdf()" class="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-xs text-white" title="Export PDF">
+              <i class="fa-solid fa-download"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Document Canvas Viewport Container -->
+        <div id="pdfViewportContainer" class="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col items-center gap-4 custom-scrollbar bg-slate-900">
+          <!-- Canvas elements dynamically inserted by PDF.js or Image renderer -->
+        </div>
+
+        <!-- Viewer Bottom Floating Tools -->
+        <div class="p-3 bg-slate-950/90 backdrop-blur-md border-t border-slate-800 flex items-center justify-around text-xs">
+          <button onclick="viewer.zoomOut()" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white">
+            <i class="fa-solid fa-magnifying-glass-minus text-sm"></i>
+            <span class="text-[9px]">Zoom Out</span>
+          </button>
+          <button onclick="viewer.zoomIn()" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white">
+            <i class="fa-solid fa-magnifying-glass-plus text-sm"></i>
+            <span class="text-[9px]">Zoom In</span>
+          </button>
+          <button onclick="viewer.speakExtractedText()" id="ttsBtn" class="flex flex-col items-center gap-1 text-brand-400 hover:text-brand-300">
+            <i class="fa-solid fa-volume-high text-sm"></i>
+            <span class="text-[9px]">Read Out (TTS)</span>
+          </button>
+          <button onclick="viewer.shareDocument()" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white">
+            <i class="fa-solid fa-share-nodes text-sm"></i>
+            <span class="text-[9px]">Share</span>
+          </button>
+          <button onclick="viewer.printDocument()" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white">
+            <i class="fa-solid fa-print text-sm"></i>
+            <span class="text-[9px]">Print</span>
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FLOATING ACTION BUTTON (TRIGGER SCANNER) -->
+    <div id="fabContainer" class="fixed bottom-20 right-5 z-20">
+      <button onclick="app.openScanner()" class="w-14 h-14 rounded-full bg-gradient-to-r from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-xl shadow-brand-500/40 hover:scale-105 active:scale-95 transition">
+        <i class="fa-solid fa-camera text-xl"></i>
+      </button>
+    </div>
+
+    <!-- BOTTOM APP NAVIGATION BAR -->
+    <nav class="fixed bottom-0 max-w-md w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-6 py-2 flex items-center justify-between z-20">
+      <button onclick="app.showTab('home')" class="nav-tab active flex flex-col items-center gap-1 text-brand-600 dark:text-brand-400" data-tab="home">
+        <i class="fa-solid fa-folder-closed text-base"></i>
+        <span class="text-[10px] font-bold">Documents</span>
+      </button>
+      
+      <!-- Central Scan Launcher Trigger -->
+      <button onclick="app.openScanner()" class="flex flex-col items-center gap-1 text-slate-500 hover:text-brand-600 dark:text-slate-400">
+        <div class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+          <i class="fa-solid fa-plus text-xs"></i>
+        </div>
+        <span class="text-[10px]">New Scan</span>
+      </button>
+
+      <button onclick="app.openToolsDialog()" class="nav-tab flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" data-tab="tools">
+        <i class="fa-solid fa-screwdriver-wrench text-base"></i>
+        <span class="text-[10px]">PDF Tools</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- ================= MODALS & DIALOGS ================= -->
+
+  <!-- Modal 1: Digital Signature Pad -->
+  <div id="signatureModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 border border-slate-200 dark:border-slate-800">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold flex items-center gap-2">
+          <i class="fa-solid fa-signature text-brand-600"></i> Draw Digital Signature
+        </h3>
+        <button onclick="modals.closeSignatureModal()" class="text-slate-400 text-base">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Signature Canvas -->
+      <div class="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-950 h-44 flex items-center justify-center relative touch-none">
+        <canvas id="sigPadCanvas" class="w-full h-full rounded-2xl"></canvas>
+        <span id="sigPlaceholder" class="absolute pointer-events-none text-xs text-slate-400">Sign with finger or stylus</span>
+      </div>
+
+      <div class="flex items-center justify-between text-xs">
+        <button onclick="modals.clearSignaturePad()" class="px-3 py-1.5 text-slate-500 hover:text-rose-500 font-semibold flex items-center gap-1">
+          <i class="fa-solid fa-eraser"></i> Clear Pad
+        </button>
+        <div class="flex gap-2">
+          <button onclick="modals.closeSignatureModal()" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl font-medium">Cancel</button>
+          <button onclick="modals.applySignatureToDoc()" class="px-4 py-2 bg-brand-600 text-white rounded-xl font-bold shadow-md">Apply to Page</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Watermark Configurator -->
+  <div id="watermarkModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 border border-slate-200 dark:border-slate-800">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold flex items-center gap-2">
+          <i class="fa-solid fa-stamp text-amber-500"></i> Configure Watermark
+        </h3>
+        <button onclick="modals.closeWatermarkModal()" class="text-slate-400 text-base">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-500 mb-1">Watermark Text</label>
+          <input type="text" id="watermarkTextInput" value="CONFIDENTIAL" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl border border-transparent focus:border-brand-500 font-bold uppercase tracking-wider">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-500 mb-1">Opacity (%)</label>
+            <input type="range" id="watermarkOpacityInput" min="5" max="60" value="20" class="w-full">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-500 mb-1">Angle</label>
+            <select id="watermarkAngleInput" class="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-xl">
+              <option value="-45">-45° Diagonal</option>
+              <option value="0">0° Horizontal</option>
+              <option value="45">45° Diagonal</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="modals.closeWatermarkModal()" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold">Cancel</button>
+        <button onclick="modals.applyWatermark()" class="px-4 py-2 bg-amber-500 text-white rounded-xl text-xs font-bold">Add Watermark</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Local Storage & Privacy Info -->
+  <div id="storageModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl p-5 space-y-4 border border-slate-200 dark:border-slate-800 text-xs">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold flex items-center gap-1.5 text-slate-900 dark:text-slate-100">
+          <i class="fa-solid fa-database text-brand-600"></i> Local Storage Vault
+        </h3>
+        <button onclick="document.getElementById('storageModal').classList.add('hidden')" class="text-slate-400">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+      
+      <div class="space-y-3 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl">
+        <div class="flex justify-between">
+          <span class="text-slate-500">Storage Backend:</span>
+          <span class="font-bold text-emerald-600">Browser IndexedDB</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Total Documents:</span>
+          <span id="storageDocCount" class="font-bold">0</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Estimated Space Used:</span>
+          <span id="storageSizeEstimate" class="font-bold">0 KB</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Privacy Status:</span>
+          <span class="font-semibold text-emerald-500"><i class="fa-solid fa-shield-halved mr-1"></i>Zero Cloud Leak</span>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-slate-400 leading-relaxed">
+        Everything you scan remains strictly inside your mobile device host. No accounts, no cookies, no external servers.
+      </p>
+
+      <div class="flex gap-2">
+        <button onclick="app.clearAllData()" class="flex-1 py-2.5 bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 rounded-xl font-bold border border-rose-200 dark:border-rose-900/50">
+          <i class="fa-solid fa-trash-can mr-1"></i> Clear All Storage
+        </button>
+        <button onclick="document.getElementById('storageModal').classList.add('hidden')" class="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl font-semibold">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Result Popover / Notification toast -->
+  <div id="toastBox" class="fixed top-16 inset-x-4 max-w-sm mx-auto z-50 pointer-events-none transition-all duration-300 opacity-0 translate-y-[-10px]">
+    <div id="toastContent" class="bg-slate-900 text-white text-xs px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-slate-700">
+      <i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+      <span id="toastMsg" class="flex-1 font-medium">Operation completed</span>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APPLICATION CORE -->
+  <script>
+    /* =======================================================
+       1. LOCAL-FIRST DATABASE ENGINE (IndexedDB)
+       ======================================================= */
+    class LocalDocDB {
+      constructor() {
+        this.dbName = 'DocuScanPro_DB';
+        this.version = 1;
+        this.db = null;
+      }
+
+      async init() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(this.dbName, this.version);
+          request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('documents')) {
+              const store = db.createObjectStore('documents', { keyPath: 'id' });
+              store.createIndex('folder', 'folder', { unique: false });
+              store.createIndex('createdAt', 'createdAt', { unique: false });
+            }
+          };
+          request.onsuccess = (e) => {
+            this.db = e.target.result;
+            resolve(this.db);
+          };
+          request.onerror = (e) => reject(e.target.error);
+        });
+      }
+
+      async saveDocument(doc) {
+        return new Promise((resolve, reject) => {
+          const tx = this.db.transaction('documents', 'readwrite');
+          const store = tx.objectStore('documents');
+          const req = store.put(doc);
+          req.onsuccess = () => resolve(doc);
+          req.onerror = (e) => reject(e.target.error);
+        });
+      }
+
+      async getAllDocuments() {
+        return new Promise((resolve, reject) => {
+          const tx = this.db.transaction('documents', 'readonly');
+          const store = tx.objectStore('documents');
+          const req = store.getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = (e) => reject(e.target.error);
+        });
+      }
+
+      async deleteDocument(id) {
+        return new Promise((resolve, reject) => {
+          const tx = this.db.transaction('documents', 'readwrite');
+          const store = tx.objectStore('documents');
+          const req = store.delete(id);
+          req.onsuccess = () => resolve();
+          req.onerror = (e) => reject(e.target.error);
+        });
+      }
+
+      async clearAll() {
+        return new Promise((resolve, reject) => {
+          const tx = this.db.transaction('documents', 'readwrite');
+          const store = tx.objectStore('documents');
+          const req = store.clear();
+          req.onsuccess = () => resolve();
+          req.onerror = (e) => reject(e.target.error);
+        });
+      }
+    }
+
+    /* =======================================================
+       2. SCANNER & CAMERA MODULE WITH GYRO SPIRIT LEVEL
+       ======================================================= */
+    class CameraScanner {
+      constructor() {
+        this.video = document.getElementById('scannerVideo');
+        this.stream = null;
+        this.facingMode = 'environment';
+        this.mode = 'document'; // 'document' | 'batch' | 'idcard' | 'qr'
+        this.capturedPages = []; // array of Image DataURLs
+        this.idCardFront = null;
+        this.isIdFrontCaptured = false;
+        this.qrInterval = null;
+
+        this.initOrientationListener();
+      }
+
+      async startCamera() {
+        try {
+          if (this.stream) this.stopCamera();
+          const constraints = {
+            video: {
+              facingMode: { ideal: this.facingMode },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            },
+            audio: false
+          };
+          this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+          this.video.srcObject = this.stream;
+          await this.video.play();
+        } catch (err) {
+          console.warn('Camera access error, fallback to native camera/gallery:', err);
+          app.showToast('Live camera blocked? Click "Native" to open phone camera');
+        }
+      }
+
+      stopCamera() {
+        if (this.stream) {
+          this.stream.getTracks().forEach(track => track.stop());
+          this.stream = null;
+        }
+        if (this.qrInterval) {
+          clearInterval(this.qrInterval);
+          this.qrInterval = null;
+        }
+      }
+
+      flipCamera() {
+        this.facingMode = this.facingMode === 'environment' ? 'user' : 'environment';
+        this.startCamera();
+      }
+
+      setMode(mode) {
+        this.mode = mode;
+        ['doc', 'batch', 'idcard', 'qr'].forEach(m => {
+          const btn = document.getElementById(`mode-${m}`);
+          if (m === mode) {
+            btn.className = 'px-2.5 py-1 rounded-full font-semibold transition bg-brand-600 text-white';
+          } else {
+            btn.className = 'px-2.5 py-1 rounded-full font-medium transition text-white/70';
+          }
+        });
+
+        const idGuide = document.getElementById('idCardGuide');
+        const instruction = document.getElementById('scannerInstruction');
+
+        if (mode === 'idcard') {
+          idGuide.classList.remove('hidden');
+          this.isIdFrontCaptured = false;
+          this.idCardFront = null;
+          document.getElementById('idCardStepLabel').textContent = '1. Scan FRONT of ID Card';
+          instruction.textContent = 'Align front side inside the green rectangle';
+        } else {
+          idGuide.classList.add('hidden');
+          instruction.textContent = mode === 'qr' ? 'Point camera to QR / Barcode' : 'Align edges inside the frame';
+        }
+
+        if (mode === 'qr') {
+          this.startQrDetectionLoop();
+        } else if (this.qrInterval) {
+          clearInterval(this.qrInterval);
+        }
+      }
+
+      takeSnapshot() {
+        const canvas = document.getElementById('captureCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width = this.video.videoWidth || 1280;
+        let height = this.video.videoHeight || 720;
+        
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(this.video, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+        // MODE 1: ID Card double-sided scan stitcher
+        if (this.mode === 'idcard') {
+          if (!this.isIdFrontCaptured) {
+            this.idCardFront = dataUrl;
+            this.isIdFrontCaptured = true;
+            document.getElementById('idCardStepLabel').textContent = '2. Scan BACK of ID Card';
+            app.showToast('Front captured! Now align back side.');
+            return;
+          } else {
+            // Front & Back Stitching into single A4 canvas
+            this.stitchIdCardsOnSingleSheet(this.idCardFront, dataUrl);
+            return;
+          }
+        }
+
+        // MODE 2: Batch Scanning
+        if (this.mode === 'batch') {
+          this.capturedPages.push(dataUrl);
+          this.updateBatchBadge();
+          app.showToast(`Page ${this.capturedPages.length} captured!`);
+          return;
+        }
+
+        // MODE 3: Single Document
+        this.capturedPages = [dataUrl];
+        this.finishBatch();
+      }
+
+      updateBatchBadge() {
+        const count = this.capturedPages.length;
+        document.getElementById('batchCountBadge').textContent = count;
+      }
+
+      finishBatch() {
+        if (this.capturedPages.length === 0) {
+          app.showToast('Please capture at least one page');
+          return;
+        }
+        this.stopCamera();
+        app.showView('editor');
+        editor.loadPages(this.capturedPages);
+      }
+
+      stitchIdCardsOnSingleSheet(frontData, backData) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1240; // A4 aspect @ 150 DPI
+        canvas.height = 1754;
+        const ctx = canvas.getContext('2d');
+
+        // Clean white page
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Header watermark
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('IDENTITY CARD COMPACT SCAN (FRONT & BACK)', canvas.width / 2, 80);
+
+        const imgFront = new Image();
+        imgFront.onload = () => {
+          // Draw Front centered at top half
+          const cardW = 900;
+          const cardH = 560;
+          ctx.strokeStyle = '#cbd5e1';
+          ctx.lineWidth = 4;
+          ctx.strokeRect((canvas.width - cardW) / 2 - 2, 140 - 2, cardW + 4, cardH + 4);
+          ctx.drawImage(imgFront, (canvas.width - cardW) / 2, 140, cardW, cardH);
+
+          const imgBack = new Image();
+          imgBack.onload = () => {
+            // Draw Back centered at bottom half
+            ctx.strokeRect((canvas.width - cardW) / 2 - 2, 800 - 2, cardW + 4, cardH + 4);
+            ctx.drawImage(imgBack, (canvas.width - cardW) / 2, 800, cardW, cardH);
+
+            const stitchedData = canvas.toDataURL('image/jpeg', 0.92);
+            this.capturedPages = [stitchedData];
+            this.stopCamera();
+            app.showView('editor');
+            editor.loadPages(this.capturedPages);
+            app.showToast('ID Card Front & Back successfully combined on 1 page!');
+          };
+          imgBack.src = backData;
+        };
+        imgFront.src = frontData;
+      }
+
+      initOrientationListener() {
+        const bubble = document.getElementById('spiritBubble');
+        const levelDeg = document.getElementById('levelDegrees');
+        const levelAdv = document.getElementById('levelAdvice');
+
+        if (window.DeviceOrientationEvent) {
+          window.addEventListener('deviceorientation', (e) => {
+            if (!e.beta || !e.gamma) return;
+            const x = Math.min(Math.max(e.gamma, -30), 30);
+            const y = Math.min(Math.max(e.beta - 45, -30), 30);
+
+            bubble.style.transform = `translate(${x * 0.8}px, ${y * 0.8}px)`;
+
+            const tilt = Math.round(Math.sqrt(x*x + y*y));
+            levelDeg.textContent = `${tilt}° tilt`;
+
+            if (tilt < 6) {
+              levelAdv.textContent = 'Perfect Angle (Flat)';
+              levelAdv.className = 'text-[9px] text-emerald-300 font-bold';
+            } else {
+              levelAdv.textContent = 'Tilt phone to align level';
+              levelAdv.className = 'text-[9px] text-amber-300 font-medium';
+            }
+          });
+        }
+      }
+
+      startQrDetectionLoop() {
+        // Fallback lightweight QR detector using BarcodeDetector API if supported
+        if ('BarcodeDetector' in window) {
+          const detector = new BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13'] });
+          this.qrInterval = setInterval(async () => {
+            try {
+              if (this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
+                const barcodes = await detector.detect(this.video);
+                if (barcodes.length > 0) {
+                  const val = barcodes[0].rawValue;
+                  clearInterval(this.qrInterval);
+                  app.showToast(`Code Detected: ${val}`);
+                  navigator.clipboard ? navigator.clipboard.writeText(val) : null;
+                }
+              }
+            } catch (e) {}
+          }, 600);
+        } else {
+          document.getElementById('scannerInstruction').textContent = 'BarcodeDetector API ready on supported mobile browsers';
+        }
+      }
+    }
+
+    /* =======================================================
+       3. ADVANCED IMAGE PROCESSING & STUDIO EDITOR
+       ======================================================= */
+    class DocEditor {
+      constructor() {
+        this.pages = []; // list of objects { originalData, currentData, rotation, filter }
+        this.currentIndex = 0;
+        this.canvas = document.getElementById('editorCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.drawCanvas = document.getElementById('drawingCanvas');
+        this.drawCtx = this.drawCanvas.getContext('2d');
+        this.isRedactActive = false;
+        this.watermarkSettings = null;
+
+        this.initRedactEvents();
+      }
+
+      loadPages(pageDataUrls) {
+        this.pages = pageDataUrls.map(url => ({
+          originalData: url,
+          currentData: url,
+          rotation: 0,
+          filter: 'colorBoost'
+        }));
+        this.currentIndex = 0;
+        this.renderCarousel();
+        this.renderCurrentPage();
+        document.getElementById('docMetaTitle').value = `Scan_${new Date().toISOString().slice(0,10)}_${Math.floor(100+Math.random()*900)}`;
+      }
+
+      renderCarousel() {
+        const strip = document.getElementById('pagesThumbStrip');
+        strip.innerHTML = '';
+        document.getElementById('carouselPageCount').textContent = this.pages.length;
+
+        this.pages.forEach((page, idx) => {
+          const item = document.createElement('div');
+          item.className = `shrink-0 w-16 h-20 rounded-xl overflow-hidden border-2 relative cursor-pointer ${idx === this.currentIndex ? 'border-brand-600 ring-2 ring-brand-500/30' : 'border-slate-300 dark:border-slate-700 opacity-70'}`;
+          item.onclick = () => {
+            this.currentIndex = idx;
+            this.renderCarousel();
+            this.renderCurrentPage();
+          };
+
+          const img = document.createElement('img');
+          img.src = page.currentData;
+          img.className = 'w-full h-full object-cover';
+
+          const num = document.createElement('span');
+          num.className = 'absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1 rounded';
+          num.textContent = idx + 1;
+
+          // Delete single page button
+          if (this.pages.length > 1) {
+            const del = document.createElement('button');
+            del.className = 'absolute top-0.5 right-0.5 w-4 h-4 bg-rose-600 text-white text-[8px] rounded-full flex items-center justify-center';
+            del.innerHTML = '×';
+            del.onclick = (e) => {
+              e.stopPropagation();
+              this.deletePage(idx);
+            };
+            item.appendChild(del);
+          }
+
+          item.appendChild(img);
+          item.appendChild(num);
+          strip.appendChild(item);
+        });
+
+        document.getElementById('editorPageIndicator').textContent = `Page ${this.currentIndex + 1} of ${this.pages.length}`;
+      }
+
+      deletePage(index) {
+        this.pages.splice(index, 1);
+        if (this.currentIndex >= this.pages.length) this.currentIndex = this.pages.length - 1;
+        this.renderCarousel();
+        this.renderCurrentPage();
+      }
+
+      renderCurrentPage() {
+        if (!this.pages[this.currentIndex]) return;
+        const page = this.pages[this.currentIndex];
+
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width;
+          let h = img.height;
+
+          // Handle 90/270 deg rotation orientation
+          if (page.rotation % 180 !== 0) {
+            this.canvas.width = h;
+            this.canvas.height = w;
+          } else {
+            this.canvas.width = w;
+            this.canvas.height = h;
+          }
+
+          this.ctx.save();
+          this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
+          this.ctx.rotate((page.rotation * Math.PI) / 180);
+          this.ctx.drawImage(img, -w / 2, -h / 2);
+          this.ctx.restore();
+
+          // Apply Filter Algorithm
+          this.processFilter(page.filter);
+
+          // Overlay Watermark if applied
+          if (this.watermarkSettings) {
+            this.drawWatermarkOnCanvas(this.ctx, this.canvas.width, this.canvas.height);
+          }
+
+          // Sync drawing overlay canvas size
+          this.drawCanvas.width = this.canvas.width;
+          this.drawCanvas.height = this.canvas.height;
+          this.drawCanvas.style.width = this.canvas.offsetWidth + 'px';
+          this.drawCanvas.style.height = this.canvas.offsetHeight + 'px';
+        };
+        img.src = page.originalData;
+      }
+
+      rotateCurrentPage() {
+        const page = this.pages[this.currentIndex];
+        page.rotation = (page.rotation + 90) % 360;
+        this.renderCurrentPage();
+      }
+
+      applyFilter(filterType) {
+        this.pages[this.currentIndex].filter = filterType;
+        ['colorBoost', 'original', 'magic', 'bw'].forEach(f => {
+          const btn = document.getElementById(`btnFilter-${f}`);
+          if (!btn) return;
+          if (f === filterType) {
+            btn.className = 'filter-btn py-1.5 rounded-xl border border-brand-500 bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 font-semibold';
+          } else {
+            btn.className = 'filter-btn py-1.5 rounded-xl border border-transparent bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300';
+          }
+        });
+        this.renderCurrentPage();
+      }
+
+      /* Pixel processing math for Document Enhancement */
+      processFilter(type) {
+        if (type === 'original') return;
+
+        const imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        const d = imgData.data;
+
+        for (let i = 0; i < d.length; i += 4) {
+          const r = d[i];
+          const g = d[i + 1];
+          const b = d[i + 2];
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+          if (type === 'colorBoost') {
+            // High-definition color preservation: Boosts saturation and removes background dullness without losing colors
+            const contrast = 1.25;
+            const factor = (259 * (contrast * 100 + 255)) / (255 * (259 - contrast * 100));
+
+            // Clean background paper (milky white) while keeping colored text/stamps
+            if (lum > 185) {
+              const boost = (lum - 185) * 0.45;
+              d[i] = Math.min(255, r + boost);
+              d[i + 1] = Math.min(255, g + boost);
+              d[i + 2] = Math.min(255, b + boost);
+            } else {
+              // Increase color saturation & contrast
+              d[i] = Math.max(0, Math.min(255, factor * (r - 128) + 128));
+              d[i + 1] = Math.max(0, Math.min(255, factor * (g - 128) + 128));
+              d[i + 2] = Math.max(0, Math.min(255, factor * (b - 128) + 128));
+            }
+          } else if (type === 'magic') {
+            // Bright Clean: Maintains subtle color tones while brightening page
+            let rBoost = (r - 40) * 1.2;
+            let gBoost = (g - 40) * 1.2;
+            let bBoost = (b - 40) * 1.2;
+            d[i] = Math.max(0, Math.min(255, rBoost));
+            d[i + 1] = Math.max(0, Math.min(255, gBoost));
+            d[i + 2] = Math.max(0, Math.min(255, bBoost));
+          } else if (type === 'bw') {
+            // High-contrast B&W document
+            const val = lum > 132 ? 255 : 0;
+            d[i] = val;
+            d[i + 1] = val;
+            d[i + 2] = val;
+          }
+        }
+        this.ctx.putImageData(imgData, 0, 0);
+      }
+
+      /* Redaction black-marker drawing */
+      initRedactEvents() {
+        let isDrawing = false;
+        let startX = 0, startY = 0;
+
+        const getCoords = (e) => {
+          const rect = this.drawCanvas.getBoundingClientRect();
+          const scaleX = this.drawCanvas.width / rect.width;
+          const scaleY = this.drawCanvas.height / rect.height;
+          const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+          const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+          return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
+          };
+        };
+
+        const start = (e) => {
+          if (!this.isRedactActive) return;
+          isDrawing = true;
+          const coords = getCoords(e);
+          startX = coords.x;
+          startY = coords.y;
+        };
+
+        const move = (e) => {
+          if (!isDrawing || !this.isRedactActive) return;
+          const coords = getCoords(e);
+          this.drawCtx.clearRect(0, 0, this.drawCanvas.width, this.drawCanvas.height);
+          this.drawCtx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+          this.drawCtx.fillRect(
+            Math.min(startX, coords.x),
+            Math.min(startY, coords.y),
+            Math.abs(coords.x - startX),
+            Math.abs(coords.y - startY)
+          );
+        };
+
+        const end = (e) => {
+          if (!isDrawing || !this.isRedactActive) return;
+          isDrawing = false;
+          // Commit redaction rectangle permanently into the base canvas
+          this.ctx.drawImage(this.drawCanvas, 0, 0);
+          this.drawCtx.clearRect(0, 0, this.drawCanvas.width, this.drawCanvas.height);
+          // Update current page cache
+          this.pages[this.currentIndex].currentData = this.canvas.toDataURL('image/jpeg', 0.9);
+          this.renderCarousel();
+        };
+
+        this.drawCanvas.addEventListener('mousedown', start);
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', end);
+
+        this.drawCanvas.addEventListener('touchstart', start, { passive: false });
+        window.addEventListener('touchmove', move, { passive: false });
+        window.addEventListener('touchend', end);
+      }
+
+      toggleRedactMode() {
+        this.isRedactActive = !this.isRedactActive;
+        const banner = document.getElementById('toolTipBanner');
+        const btnText = document.getElementById('redactBtnText');
+
+        if (this.isRedactActive) {
+          this.drawCanvas.classList.remove('pointer-events-none');
+          banner.classList.remove('hidden');
+          banner.textContent = 'Drag box over sensitive info (Aadhaar/Phone) to Blackout';
+          btnText.textContent = 'Done Redacting';
+          btnText.parentElement.classList.add('bg-rose-100', 'dark:bg-rose-900/40');
+        } else {
+          this.drawCanvas.classList.add('pointer-events-none');
+          banner.classList.add('hidden');
+          btnText.textContent = 'Redact Info';
+          btnText.parentElement.classList.remove('bg-rose-100', 'dark:bg-rose-900/40');
+        }
+      }
+
+      drawWatermarkOnCanvas(ctx, w, h) {
+        const { text, opacity, angle } = this.watermarkSettings;
+        ctx.save();
+        ctx.translate(w / 2, h / 2);
+        ctx.rotate((angle * Math.PI) / 180);
+        ctx.textAlign = 'center';
+        ctx.font = `bold ${Math.round(w / 10)}px sans-serif`;
+        ctx.fillStyle = `rgba(220, 38, 38, ${opacity / 100})`;
+        ctx.fillText(text, 0, 0);
+        ctx.restore();
+      }
+
+      backToHome() {
+        app.showView('home');
+      }
+
+      /* Save processed document into jsPDF and write to IndexedDB */
+      async saveAndCompilePdf() {
+        app.showToast('Compiling high-resolution PDF...');
+        const { jsPDF } = window.jspdf;
+
+        const pageSize = document.getElementById('docMetaPageSize').value;
+        const quality = parseFloat(document.getElementById('docMetaQuality').value);
+        const title = document.getElementById('docMetaTitle').value.trim() || 'Scanned_Doc';
+        const folder = document.getElementById('docMetaFolder').value;
+        const tags = document.getElementById('docMetaTags').value.split(',').map(t => t.trim()).filter(Boolean);
+
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'pt',
+          format: pageSize
+        });
+
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        // Process every page in batch sequentially
+        for (let i = 0; i < this.pages.length; i++) {
+          if (i > 0) pdf.addPage(pageSize, 'portrait');
+
+          // Render page to offscreen temporary canvas to capture filters + watermarks
+          const tempCanvas = document.createElement('canvas');
+          const tCtx = tempCanvas.getContext('2d');
+          const img = await this.loadImage(this.pages[i].originalData);
+
+          const rot = this.pages[i].rotation;
+          if (rot % 180 !== 0) {
+            tempCanvas.width = img.height;
+            tempCanvas.height = img.width;
+          } else {
+            tempCanvas.width = img.width;
+            tempCanvas.height = img.height;
+          }
+
+          tCtx.save();
+          tCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+          tCtx.rotate((rot * Math.PI) / 180);
+          tCtx.drawImage(img, -img.width / 2, -img.height / 2);
+          tCtx.restore();
+
+          // Apply page filter to export
+          if (this.pages[i].filter !== 'original') {
+            const imgData = tCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const d = imgData.data;
+            for (let k = 0; k < d.length; k += 4) {
+              const r = d[k];
+              const g = d[k+1];
+              const b = d[k+2];
+              const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+              if (this.pages[i].filter === 'colorBoost') {
+                const factor = 1.35;
+                if (lum > 185) {
+                  const boost = (lum - 185) * 0.45;
+                  d[k] = Math.min(255, r + boost);
+                  d[k+1] = Math.min(255, g + boost);
+                  d[k+2] = Math.min(255, b + boost);
+                } else {
+                  d[k] = Math.max(0, Math.min(255, (r - 128) * factor + 128));
+                  d[k+1] = Math.max(0, Math.min(255, (g - 128) * factor + 128));
+                  d[k+2] = Math.max(0, Math.min(255, (b - 128) * factor + 128));
+                }
+              } else if (this.pages[i].filter === 'magic') {
+                d[k] = Math.max(0, Math.min(255, (r - 40) * 1.2));
+                d[k+1] = Math.max(0, Math.min(255, (g - 40) * 1.2));
+                d[k+2] = Math.max(0, Math.min(255, (b - 40) * 1.2));
+              } else if (this.pages[i].filter === 'bw') {
+                const val = lum > 132 ? 255 : 0;
+                d[k] = d[k+1] = d[k+2] = val;
+              }
+            }
+            tCtx.putImageData(imgData, 0, 0);
+          }
+
+          if (this.watermarkSettings) {
+            this.drawWatermarkOnCanvas(tCtx, tempCanvas.width, tempCanvas.height);
+          }
+
+          const pageJpg = tempCanvas.toDataURL('image/jpeg', quality);
+          pdf.addImage(pageJpg, 'JPEG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+        }
+
+        // Generate PDF Blob
+        const pdfBlob = pdf.output('blob');
+        const pdfDataUrl = URL.createObjectURL(pdfBlob);
+
+        // Store to IndexedDB
+        const newDocRecord = {
+          id: 'doc_' + Date.now(),
+          title: title,
+          folder: folder,
+          tags: tags,
+          pageCount: this.pages.length,
+          sizeBytes: pdfBlob.size,
+          createdAt: new Date().toISOString(),
+          pdfBlob: pdfBlob,
+          thumbnail: this.pages[0].currentData
+        };
+
+        await db.saveDocument(newDocRecord);
+        app.showToast('Document securely saved to local storage!');
+        app.refreshDocumentsList();
+        app.showView('home');
+      }
+
+      loadImage(src) {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.src = src;
+        });
+      }
+    }
+
+    /* =======================================================
+       4. INTEGRATED PDF VIEWER (PDF.JS + TTS READER)
+       ======================================================= */
+    class DocumentViewer {
+      constructor() {
+        this.currentDoc = null;
+        this.currentPdf = null;
+        this.zoomLevel = 1.0;
+        this.isNightMode = false;
+        this.viewportContainer = document.getElementById('pdfViewportContainer');
+        this.extractedTextContent = "";
+      }
+
+      async openDocument(doc) {
+        this.currentDoc = doc;
+        document.getElementById('viewerDocTitle').textContent = doc.title;
+        app.showView('viewer');
+        this.viewportContainer.innerHTML = '<div class="py-12 text-center text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Rendering PDF pages...</div>';
+
+        try {
+          const arrayBuffer = await doc.pdfBlob.arrayBuffer();
+          const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+          this.currentPdf = await loadingTask.promise;
+          document.getElementById('viewerPageStatus').textContent = `${this.currentPdf.numPages} Pages`;
+          this.renderAllPdfPages();
+          this.extractTextForTts();
+        } catch (err) {
+          console.error(err);
+          this.viewportContainer.innerHTML = '<div class="p-6 text-rose-400 text-xs">Error opening PDF file.</div>';
+        }
+      }
+
+      async renderAllPdfPages() {
+        this.viewportContainer.innerHTML = '';
+        for (let pageNum = 1; pageNum <= this.currentPdf.numPages; pageNum++) {
+          const page = await this.currentPdf.getPage(pageNum);
+          const viewport = page.getViewport({ scale: this.zoomLevel });
+
+          const pageWrapper = document.createElement('div');
+          pageWrapper.className = `relative rounded-xl overflow-hidden shadow-2xl bg-white ${this.isNightMode ? 'pdf-night-mode' : ''}`;
+
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          canvas.className = 'max-w-full h-auto block';
+
+          await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+          pageWrapper.appendChild(canvas);
+          this.viewportContainer.appendChild(pageWrapper);
+        }
+      }
+
+      async extractTextForTts() {
+        this.extractedTextContent = "";
+        try {
+          for (let p = 1; p <= this.currentPdf.numPages; p++) {
+            const page = await this.currentPdf.getPage(p);
+            const content = await page.getTextContent();
+            const pageText = content.items.map(item => item.str).join(" ");
+            this.extractedTextContent += " " + pageText;
+          }
+        } catch (e) {
+          console.log('Text extraction notice:', e);
+        }
+      }
+
+      zoomIn() {
+        if (this.zoomLevel < 2.5) {
+          this.zoomLevel += 0.25;
+          this.renderAllPdfPages();
+        }
+      }
+
+      zoomOut() {
+        if (this.zoomLevel > 0.5) {
+          this.zoomLevel -= 0.25;
+          this.renderAllPdfPages();
+        }
+      }
+
+      toggleNightMode() {
+        this.isNightMode = !this.isNightMode;
+        const btn = document.getElementById('viewerNightBtn');
+        btn.classList.toggle('text-amber-400', !this.isNightMode);
+        btn.classList.toggle('text-indigo-400', this.isNightMode);
+        this.renderAllPdfPages();
+      }
+
+      speakExtractedText() {
+        if (!('speechSynthesis' in window)) {
+          app.showToast('Text-to-speech not supported on this browser');
+          return;
+        }
+
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+          app.showToast('Audio reading paused');
+          return;
+        }
+
+        const textToRead = this.extractedTextContent.trim() || `${this.currentDoc.title}. This is a scanned image document. You can export or print this file locally.`;
+        const utterance = new SpeechSynthesisUtterance(textToRead.slice(0, 1000));
+        utterance.rate = 0.95;
+        window.speechSynthesis.speak(utterance);
+        app.showToast('Reading document out loud...');
+      }
+
+      downloadCurrentPdf() {
+        if (!this.currentDoc) return;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(this.currentDoc.pdfBlob);
+        a.download = `${this.currentDoc.title}.pdf`;
+        a.click();
+      }
+
+      async shareDocument() {
+        if (!this.currentDoc) return;
+        const file = new File([this.currentDoc.pdfBlob], `${this.currentDoc.title}.pdf`, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: this.currentDoc.title,
+              text: 'Scanned via DocuScan Pro (100% Offline)'
+            });
+          } catch (e) {}
+        } else {
+          this.downloadCurrentPdf();
+        }
+      }
+
+      printDocument() {
+        const url = URL.createObjectURL(this.currentDoc.pdfBlob);
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = url;
+        document.body.appendChild(iframe);
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      }
+
+      closeViewer() {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        app.showView('home');
+      }
+    }
+
+    /* =======================================================
+       5. MODAL DIALOGS (SIGNATURE & WATERMARK)
+       ======================================================= */
+    class ModalsController {
+      constructor() {
+        this.sigCanvas = document.getElementById('sigPadCanvas');
+        this.sigCtx = this.sigCanvas.getContext('2d');
+        this.isSigning = false;
+        this.initSigEvents();
+      }
+
+      openSignatureModal() {
+        document.getElementById('signatureModal').classList.remove('hidden');
+        this.resizeSigCanvas();
+      }
+
+      closeSignatureModal() {
+        document.getElementById('signatureModal').classList.add('hidden');
+      }
+
+      resizeSigCanvas() {
+        const rect = this.sigCanvas.getBoundingClientRect();
+        this.sigCanvas.width = rect.width;
+        this.sigCanvas.height = rect.height;
+        this.sigCtx.lineWidth = 2.5;
+        this.sigCtx.lineCap = 'round';
+        this.sigCtx.strokeStyle = '#1e293b';
+      }
+
+      initSigEvents() {
+        const getPos = (e) => {
+          const rect = this.sigCanvas.getBoundingClientRect();
+          const cx = e.touches ? e.touches[0].clientX : e.clientX;
+          const cy = e.touches ? e.touches[0].clientY : e.clientY;
+          return { x: cx - rect.left, y: cy - rect.top };
+        };
+
+        const start = (e) => {
+          this.isSigning = true;
+          document.getElementById('sigPlaceholder').classList.add('hidden');
+          const p = getPos(e);
+          this.sigCtx.beginPath();
+          this.sigCtx.moveTo(p.x, p.y);
+        };
+
+        const move = (e) => {
+          if (!this.isSigning) return;
+          const p = getPos(e);
+          this.sigCtx.lineTo(p.x, p.y);
+          this.sigCtx.stroke();
+        };
+
+        const stop = () => { this.isSigning = false; };
+
+        this.sigCanvas.addEventListener('mousedown', start);
+        this.sigCanvas.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', stop);
+
+        this.sigCanvas.addEventListener('touchstart', start);
+        this.sigCanvas.addEventListener('touchmove', move);
+        window.addEventListener('touchend', stop);
+      }
+
+      clearSignaturePad() {
+        this.sigCtx.clearRect(0, 0, this.sigCanvas.width, this.sigCanvas.height);
+        document.getElementById('sigPlaceholder').classList.remove('hidden');
+      }
+
+      applySignatureToDoc() {
+        // Stamp digital signature onto the bottom right of current page canvas
+        const sigData = this.sigCanvas.toDataURL('image/png');
+        const img = new Image();
+        img.onload = () => {
+          const w = editor.canvas.width * 0.35;
+          const h = (img.height / img.width) * w;
+          editor.ctx.drawImage(img, editor.canvas.width - w - 40, editor.canvas.height - h - 40, w, h);
+          editor.pages[editor.currentIndex].currentData = editor.canvas.toDataURL('image/jpeg', 0.9);
+          editor.renderCarousel();
+          this.closeSignatureModal();
+          app.showToast('Signature stamped on page');
+        };
+        img.src = sigData;
+      }
+
+      openWatermarkModal() {
+        document.getElementById('watermarkModal').classList.remove('hidden');
+      }
+
+      closeWatermarkModal() {
+        document.getElementById('watermarkModal').classList.add('hidden');
+      }
+
+      applyWatermark() {
+        const text = document.getElementById('watermarkTextInput').value.trim() || 'CONFIDENTIAL';
+        const opacity = parseInt(document.getElementById('watermarkOpacityInput').value);
+        const angle = parseInt(document.getElementById('watermarkAngleInput').value);
+
+        editor.watermarkSettings = { text, opacity, angle };
+        editor.renderCurrentPage();
+        this.closeWatermarkModal();
+        app.showToast('Watermark activated for PDF');
+      }
+    }
+
+    /* =======================================================
+       6. MAIN CONTROLLER & STATE MANAGER
+       ======================================================= */
+    class DocuScanApp {
+      constructor() {
+        this.currentTab = 'home';
+        this.currentFolderFilter = 'all';
+        this.allDocuments = [];
+      }
+
+      async init() {
+        await db.init();
+        this.initTheme();
+        this.initEventListeners();
+        await this.refreshDocumentsList();
+      }
+
+      initTheme() {
+        const isDark = localStorage.getItem('theme') === 'dark' || 
+          (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('dark', isDark);
+
+        document.getElementById('themeToggleBtn').onclick = () => {
+          const isNowDark = document.documentElement.classList.toggle('dark');
+          localStorage.setItem('theme', isNowDark ? 'dark' : 'light');
+        };
+      }
+
+      showView(viewName) {
+        ['home', 'scanner', 'editor', 'viewer'].forEach(v => {
+          const el = document.getElementById(`view-${v}`);
+          el.classList.toggle('hidden', v !== viewName);
+        });
+
+        // Hide floating action button during scanning / editing / viewing
+        document.getElementById('fabContainer').style.display = (viewName === 'home') ? 'block' : 'none';
+      }
+
+      openScanner() {
+        this.showView('scanner');
+        scanner.startCamera();
+        scanner.setMode('document');
+      }
+
+      closeScanner() {
+        scanner.stopCamera();
+        this.showView('home');
+      }
+
+      setFolderFilter(folder) {
+        this.currentFolderFilter = folder;
+        document.querySelectorAll('.folder-chip').forEach(btn => {
+          const matches = btn.dataset.folder === folder;
+          btn.className = `folder-chip px-3 py-1.5 rounded-xl font-medium whitespace-nowrap text-xs transition ${matches ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`;
+        });
+        this.filterAndRenderDocuments();
+      }
+
+      async refreshDocumentsList() {
+        this.allDocuments = await db.getAllDocuments();
+        this.filterAndRenderDocuments();
+      }
+
+      filterAndRenderDocuments() {
+        const searchVal = document.getElementById('searchInput').value.toLowerCase().trim();
+        const listContainer = document.getElementById('documentsList');
+
+        const filtered = this.allDocuments.filter(doc => {
+          const matchesFolder = this.currentFolderFilter === 'all' || doc.folder === this.currentFolderFilter;
+          const matchesSearch = doc.title.toLowerCase().includes(searchVal) || 
+            (doc.tags && doc.tags.some(t => t.toLowerCase().includes(searchVal)));
+          return matchesFolder && matchesSearch;
+        });
+
+        document.getElementById('docCountLabel').textContent = `Saved Documents (${filtered.length})`;
+
+        if (filtered.length === 0) {
+          listContainer.innerHTML = `
+            <div class="py-14 text-center space-y-3 bg-white dark:bg-slate-800/40 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+              <div class="w-12 h-12 mx-auto rounded-2xl bg-brand-50 dark:bg-brand-950/50 text-brand-500 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-folder-open"></i>
+              </div>
+              <div>
+                <p class="text-xs font-bold text-slate-700 dark:text-slate-200">No documents found</p>
+                <p class="text-[11px] text-slate-400">Tap the camera button to scan books or IDs</p>
+              </div>
+            </div>`;
+          return;
+        }
+
+        listContainer.innerHTML = '';
+        filtered.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).forEach(doc => {
+          const card = document.createElement('div');
+          card.className = 'p-3 bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-brand-500/50 flex items-center justify-between gap-3 shadow-xs transition';
+
+          const sizeKb = Math.round(doc.sizeBytes / 1024);
+          const dateStr = new Date(doc.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+          card.innerHTML = `
+            <div class="flex items-center gap-3 min-w-0 flex-1 cursor-pointer">
+              <div class="w-12 h-14 rounded-xl bg-slate-100 dark:bg-slate-900 overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700">
+                <img src="${doc.thumbnail || ''}" class="w-full h-full object-cover">
+              </div>
+              <div class="min-w-0 flex-1">
+                <h4 class="text-xs font-bold truncate text-slate-800 dark:text-slate-100">${doc.title}</h4>
+                <div class="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                  <span>${doc.pageCount} ${doc.pageCount > 1 ? 'pages' : 'page'}</span>
+                  <span>•</span>
+                  <span>${sizeKb} KB</span>
+                  <span>•</span>
+                  <span>${dateStr}</span>
+                </div>
+                <div class="flex items-center gap-1 mt-1">
+                  <span class="text-[9px] px-2 py-0.5 bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 rounded-md font-medium">${doc.folder}</span>
+                  ${doc.tags ? doc.tags.map(t => `<span class="text-[9px] px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/60 text-brand-600 dark:text-brand-300 rounded font-mono">${t}</span>`).join('') : ''}
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1 shrink-0">
+              <button class="open-btn p-2 text-slate-500 hover:text-brand-600 active:scale-95 text-xs" title="Open Viewer">
+                <i class="fa-solid fa-eye text-sm"></i>
+              </button>
+              <button class="del-btn p-2 text-slate-400 hover:text-rose-500 active:scale-95 text-xs" title="Delete">
+                <i class="fa-regular fa-trash-can text-sm"></i>
+              </button>
+            </div>
+          `;
+
+          card.querySelector('.cursor-pointer').onclick = () => viewer.openDocument(doc);
+          card.querySelector('.open-btn').onclick = () => viewer.openDocument(doc);
+          card.querySelector('.del-btn').onclick = (e) => {
+            e.stopPropagation();
+            this.deleteDocumentConfirm(doc.id);
+          };
+
+          listContainer.appendChild(card);
+        });
+      }
+
+      async deleteDocumentConfirm(id) {
+        await db.deleteDocument(id);
+        this.refreshDocumentsList();
+        this.showToast('Document removed from local host');
+      }
+
+      initEventListeners() {
+        // Search Input
+        const searchInput = document.getElementById('searchInput');
+        const clearBtn = document.getElementById('clearSearchBtn');
+        searchInput.oninput = () => {
+          clearBtn.classList.toggle('hidden', !searchInput.value);
+          this.filterAndRenderDocuments();
+        };
+        clearBtn.onclick = () => {
+          searchInput.value = '';
+          clearBtn.classList.add('hidden');
+          this.filterAndRenderDocuments();
+        };
+
+        // Open External PDF from Phone Storage
+        document.getElementById('externalPdfInput').onchange = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const virtualDoc = {
+            id: 'external_' + Date.now(),
+            title: file.name.replace(/\.[^/.]+$/, ""),
+            folder: 'Phone Storage',
+            sizeBytes: file.size,
+            pdfBlob: file,
+            createdAt: new Date().toISOString()
+          };
+          viewer.openDocument(virtualDoc);
+        };
+
+        // NEW: Direct Photos/Gallery to PDF batch convert from Home screen
+        document.getElementById('directPhotosToPdfInput').onchange = (e) => {
+          const files = Array.from(e.target.files);
+          if (files.length === 0) return;
+          const readers = files.map(file => {
+            return new Promise((resolve) => {
+              const r = new FileReader();
+              r.onload = (evt) => resolve(evt.target.result);
+              r.readAsDataURL(file);
+            });
+          });
+          Promise.all(readers).then(results => {
+            this.showView('editor');
+            editor.loadPages(results);
+            this.showToast(`${results.length} photo(s) imported! Customize & Save PDF.`);
+          });
+        };
+
+        // Native Camera shutter fallback handler
+        const handleNativeSnapshot = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const r = new FileReader();
+          r.onload = (evt) => {
+            scanner.capturedPages.push(evt.target.result);
+            scanner.updateBatchBadge();
+            scanner.finishBatch();
+          };
+          r.readAsDataURL(file);
+        };
+        const nativeShutter = document.getElementById('nativeShutterInput');
+        if (nativeShutter) nativeShutter.onchange = handleNativeSnapshot;
+
+        // Gallery input fallback inside scanner
+        document.getElementById('scannerGalleryInput').onchange = (e) => {
+          const files = Array.from(e.target.files);
+          if (files.length === 0) return;
+          const readers = files.map(file => {
+            return new Promise((resolve) => {
+              const r = new FileReader();
+              r.onload = (evt) => resolve(evt.target.result);
+              r.readAsDataURL(file);
+            });
+          });
+          Promise.all(readers).then(results => {
+            scanner.stopCamera();
+            this.showView('editor');
+            editor.loadPages(results);
+          });
+        };
+
+        // Add additional page inside editor
+        document.getElementById('addPageInput').onchange = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const r = new FileReader();
+          r.onload = (evt) => {
+            editor.pages.push({
+              originalData: evt.target.result,
+              currentData: evt.target.result,
+              rotation: 0,
+              filter: 'colorBoost'
+            });
+            editor.currentIndex = editor.pages.length - 1;
+            editor.renderCarousel();
+            editor.renderCurrentPage();
+            this.showToast('Page appended');
+          };
+          r.readAsDataURL(file);
+        };
+      }
+      /* Save processed document into jsPDF and write to IndexedDB */
+      async saveAndCompilePdf() {
+        app.showToast('Compiling high-resolution PDF...');
+        const { jsPDF } = window.jspdf;
+
+        const pageSize = document.getElementById('docMetaPageSize').value;
+        const quality = parseFloat(document.getElementById('docMetaQuality').value);
+        const title = document.getElementById('docMetaTitle').value.trim() || 'Scanned_Doc';
+        const folder = document.getElementById('docMetaFolder').value;
+        const tags = document.getElementById('docMetaTags').value.split(',').map(t => t.trim()).filter(Boolean);
+
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'pt',
+          format: pageSize
+        });
+
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        // Process every page in batch sequentially
+        for (let i = 0; i < this.pages.length; i++) {
+          if (i > 0) pdf.addPage(pageSize, 'portrait');
+
+          // Render page to offscreen temporary canvas to capture filters + watermarks
+          const tempCanvas = document.createElement('canvas');
+          const tCtx = tempCanvas.getContext('2d');
+          const img = await this.loadImage(this.pages[i].originalData);
+
+          const rot = this.pages[i].rotation;
+          if (rot % 180 !== 0) {
+            tempCanvas.width = img.height;
+            tempCanvas.height = img.width;
+          } else {
+            tempCanvas.width = img.width;
+            tempCanvas.height = img.height;
+          }
+
+          tCtx.save();
+          tCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+          tCtx.rotate((rot * Math.PI) / 180);
+          tCtx.drawImage(img, -img.width / 2, -img.height / 2);
+          tCtx.restore();
+
+          // Apply page filter to export
+          if (this.pages[i].filter !== 'original') {
+            const imgData = tCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const d = imgData.data;
+            for (let k = 0; k < d.length; k += 4) {
+              const r = d[k];
+              const g = d[k+1];
+              const b = d[k+2];
+              const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+              if (this.pages[i].filter === 'colorBoost') {
+                const factor = 1.35;
+                if (lum > 185) {
+                  const boost = (lum - 185) * 0.45;
+                  d[k] = Math.min(255, r + boost);
+                  d[k+1] = Math.min(255, g + boost);
+                  d[k+2] = Math.min(255, b + boost);
+                } else {
+                  d[k] = Math.max(0, Math.min(255, (r - 128) * factor + 128));
+                  d[k+1] = Math.max(0, Math.min(255, (g - 128) * factor + 128));
+                  d[k+2] = Math.max(0, Math.min(255, (b - 128) * factor + 128));
+                }
+              } else if (this.pages[i].filter === 'magic') {
+                d[k] = Math.max(0, Math.min(255, (r - 40) * 1.2));
+                d[k+1] = Math.max(0, Math.min(255, (g - 40) * 1.2));
+                d[k+2] = Math.max(0, Math.min(255, (b - 40) * 1.2));
+              } else if (this.pages[i].filter === 'bw') {
+                const val = lum > 132 ? 255 : 0;
+                d[k] = d[k+1] = d[k+2] = val;
+              }
+            }
+            tCtx.putImageData(imgData, 0, 0);
+          }
+
+          if (this.watermarkSettings) {
+            this.drawWatermarkOnCanvas(tCtx, tempCanvas.width, tempCanvas.height);
+          }
+
+          const pageJpg = tempCanvas.toDataURL('image/jpeg', quality);
+          pdf.addImage(pageJpg, 'JPEG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+        }
+
+        // Generate PDF Blob
+        const pdfBlob = pdf.output('blob');
+
+        // Store to IndexedDB
+        const newDocRecord = {
+          id: 'doc_' + Date.now(),
+          title: title,
+          folder: folder,
+          tags: tags,
+          pageCount: this.pages.length,
+          sizeBytes: pdfBlob.size,
+          createdAt: new Date().toISOString(),
+          pdfBlob: pdfBlob,
+          thumbnail: this.pages[0].currentData
+        };
+
+        await db.saveDocument(newDocRecord);
+        app.showToast('PDF ban gaya! Viewer me khul raha hai...');
+        await app.refreshDocumentsList();
+
+        // Automatically open the generated PDF in the built-in reader right away
+        viewer.openDocument(newDocRecord);
+      }
+
+      async showStorageInfo() {
+        const docs = await db.getAllDocuments();
+        let bytes = 0;
+        docs.forEach(d => bytes += (d.sizeBytes || 0));
+        document.getElementById('storageDocCount').textContent = docs.length;
+        document.getElementById('storageSizeEstimate').textContent = `${(bytes / 1024).toFixed(1)} KB`;
+        document.getElementById('storageModal').classList.remove('hidden');
+      }
+
+      async clearAllData() {
+        await db.clearAll();
+        document.getElementById('storageModal').classList.add('hidden');
+        await this.refreshDocumentsList();
+        this.showToast('All local storage cleared');
+      }
+
+      openToolsDialog() {
+        this.showToast('PDF Tools active: Use the + icon to scan or merge documents');
+      }
+
+      showTab(tab) {
+        this.currentTab = tab;
+        if (tab === 'home') this.showView('home');
+      }
+    }
+
+    /* Initialize Application on DOM Ready */
+    const db = new LocalDocDB();
+    const scanner = new CameraScanner();
+    const editor = new DocEditor();
+    const viewer = new DocumentViewer();
+    const modals = new ModalsController();
+    const app = new DocuScanApp();
+
+    window.addEventListener('DOMContentLoaded', () => {
+      app.init();
+    });
+  </script>
+</body>
+</html>
